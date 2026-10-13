@@ -13,10 +13,12 @@ un folder cu datele lui, iar scriptul face din ele fișierul Excel final.
    Cursul EUR/MDL e în celula **F3**: în Google Sheets vine live din Google Finance
    (`GOOGLEFINANCE("CURRENCY:EURMDL")`), în Excel e cursul de rezervă din
    `brand/ozonteh.json`. Prețul în lei se recalculează singur.
-2. **Ofertă comercială**: ofertă pentru client, de o pagină A4. Produsul se
-   alege din listă, iar prețul, linkul și totalurile (fără TVA, TVA, cu TVA, în
-   EUR și MDL) se completează singure. Câmpurile galbene sunt de completat și
-   devin albe după completare, ca PDF-ul pentru client să iasă curat.
+2. **Ofertă comercială**: pagina de start a ofertei, după designul Ozonteh
+   („Oferta KVINT”): titlu, „Pentru: client”, dată, număr, valabilitate,
+   reprezentantul cu poză și contacte, tabelul de produse (până la 6), textul
+   de mulțumire, semnătura cu ștampila. Produsul se alege din listă; prețul,
+   linkul și totalul fără TVA (EUR și MDL) se completează singure. Câmpurile
+   galbene sunt de completat și devin albe după completare.
 
 3. **Instrucțiuni**: cum se completează oferta și cum se scoate PDF-ul.
 
@@ -24,10 +26,11 @@ un folder cu datele lui, iar scriptul face din ele fișierul Excel final.
 
 ## Oferta completă într-un PDF (Google Sheets)
 
-Meniul **Ozonteh → Descarcă oferta completă (PDF)** face un singur PDF: oferta
-comercială, apoi oferta (fișa tehnică) fiecărui produs ales, luată din linkul
-„Ofertă comercială” al produsului. PDF-ul se salvează și în Drive, în dosarul
-„Oferte Ozonteh (PDF)”. Codul e în `scripts/apps_script/oferta_completa.gs`.
+Meniul **Ozonteh** are două comenzi: **Descarcă oferta completă (PDF)** și
+**Tipărește oferta completă**. Amândouă fac un singur PDF: pagina de start, apoi
+oferta (fișa tehnică) fiecărui produs ales, luată din linkul „Ofertă comercială”
+al produsului. PDF-ul se salvează și în Drive, în dosarul „Oferte Ozonteh (PDF)”.
+Codul e în `scripts/apps_script/oferta_completa.gs`.
 
 Instalare, o dată pe fiecare foaie de calcul:
 1. Fișier → Salvează ca Foi de calcul Google (dacă titlul are .XLSX).
@@ -106,10 +109,17 @@ de produse din ofertă și formulele rămân. Cursul din F3 se actualizează sin
 | `logouri_categorii` | opțional: sigla afișată pe rândul fiecărei categorii, pentru liste cu mai multe mărci |
 | `data_actualizare` | data din antet, `AAAA-LL-ZZ` |
 
+## Date private (nu se urcă pe GitHub)
+
+Repo-ul e **public**. Poza și datele reprezentantului, semnătura și ștampila stau în
+`brand/privat/` (ignorat de git; model de completat: `brand/reprezentant.exemplu.json`),
+iar fișierele generate din `output/` (care le conțin) nu se urcă: se trimit direct.
+Fără `brand/privat/`, pagina de start iese fără reprezentant și ștampilă.
+
 ## Setări comune
 
-`brand/ozonteh.json`: datele firmei, culoarea, cursul de rezervă (pentru Excel), cota TVA,
-valabilitatea ofertei și condițiile din ofertă (garanție, livrare, finanțare,
-service). Se schimbă o dată aici și apar la toți furnizorii la următoarea generare.
+`brand/ozonteh.json`: datele firmei, culorile, cursul de rezervă (pentru Excel),
+valabilitatea implicită a ofertei și variantele din listă, textul de mulțumire.
+Se schimbă o dată aici și apar la toți furnizorii la următoarea generare.
 
 Instalare: `pip install -r requirements.txt`

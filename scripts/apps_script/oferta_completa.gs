@@ -1,24 +1,24 @@
 /**
- * Ozonteh: oferta comercială + ofertele produselor alese, într-un singur PDF.
+ * Ozonteh: pagina de start a ofertei + ofertele produselor alese, într-un singur PDF.
  *
  * Instalare (o singură dată pentru fiecare foaie de calcul):
  *   1. Fișier → Salvează ca Foi de calcul Google (dacă titlul are .XLSX).
  *   2. Extensii → Apps Script → lipiți tot fișierul acesta → Salvați.
  *   3. Reîncărcați foaia de calcul: apare meniul „Ozonteh”.
  *
- * Cum lucrează: copiază temporar foaia fiecărei oferte de produs în fișierul
- * curent, ascunde celelalte foi, exportă PDF-ul (oferta comercială primă,
- * apoi fișele în ordinea din tabel), apoi șterge copiile și reface totul.
+ * Meniul are două comenzi:
+ *   - „Descarcă oferta completă (PDF)”: salvează PDF-ul în Drive și dă linkul;
+ *   - „Tipărește oferta completă”: deschide același PDF, gata de tipar (Ctrl+P).
  *
- * Depinde de pozițiile din scripts/genereaza_lista.py: produsele în B19:B28,
- * linkul la oferta produsului în coloana ascunsă I.
+ * Cum lucrează: copiază temporar foaia fiecărei oferte de produs în fișierul
+ * curent, ascunde celelalte foi, exportă PDF-ul (pagina de start, apoi ofertele
+ * produselor în ordinea din tabel), apoi șterge copiile și reface totul.
+ *
+ * Citește câmpurile prin nume (le pune scripts/genereaza_lista.py):
+ *   OfertaProduse, OfertaLinkuri, OfertaClient, OfertaNr, OfertaData.
  */
 
 var FOAIE_OFERTA = 'Ofertă comercială';
-var PRIMA_LINIE = 19;
-var NR_LINII = 10;
-var COL_PRODUS = 2;        // B
-var COL_LINK_OFERTA = 9;   // I (ascunsă)
 var DOSAR_PDF = 'Oferte Ozonteh (PDF)';
 var PREFIX_TEMPORAR = '_fisa_';
 
@@ -26,41 +26,58 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Ozonteh')
     .addItem('Descarcă oferta completă (PDF)', 'descarcaOfertaCompleta')
+    .addItem('Tipărește oferta completă', 'tiparesteOfertaCompleta')
     .addToUi();
 }
 
 function descarcaOfertaCompleta() {
+  var rezultat = faPdf();
+  if (rezultat) arataRezultat(rezultat, false);
+}
+
+function tiparesteOfertaCompleta() {
+  var rezultat = faPdf();
+  if (rezultat) arataRezultat(rezultat, true);
+}
+
+/** Face PDF-ul complet și îl salvează în Drive. Întoarce null dacă n-a mers. */
+function faPdf() {
   var ss = SpreadsheetApp.getActive();
   var ui = SpreadsheetApp.getUi();
   var oferta = ss.getSheetByName(FOAIE_OFERTA);
-  if (!oferta) {
-    ui.alert('Nu găsesc foaia „' + FOAIE_OFERTA + '”.');
-    return;
+  var produseRange = ss.getRangeByName('OfertaProduse');
+  var linkuriRange = ss.getRangeByName('OfertaLinkuri');
+  if (!oferta || !produseRange || !linkuriRange) {
+    ui.alert('Nu găsesc foaia „' + FOAIE_OFERTA + '” sau tabelul de produse. ' +
+             'Importați din nou fișierul Excel generat.');
+    return null;
   }
   stergeTemporare(ss);
   SpreadsheetApp.flush();
 
+  var numeProduse = produseRange.getValues();
+  var linkuri = linkuriRange.getValues();
   var produse = [];
   var faraOferta = [];
-  oferta.getRange(PRIMA_LINIE, 1, NR_LINII, COL_LINK_OFERTA).getValues().forEach(function (r) {
-    var nume = String(r[COL_PRODUS - 1]).trim();
-    if (!nume) return;
-    var link = String(r[COL_LINK_OFERTA - 1]).trim();
+  for (var i = 0; i < numeProduse.length; i++) {
+    var nume = String(numeProduse[i][0]).trim();
+    if (!nume) continue;
+    var link = String(linkuri[i][0]).trim();
     var id = (link.match(/\/d\/([\w-]+)/) || [])[1];
     if (!id) {
       faraOferta.push(nume);
-      return;
+      continue;
     }
     var gid = (link.match(/[#?&]gid=(\d+)/) || [])[1] || '';
     var dejaAdaugat = produse.some(function (p) { return p.id === id && p.gid === gid; });
     if (!dejaAdaugat) produse.push({ nume: nume, id: id, gid: gid });
-  });
+  }
 
   var temporare = [];
   var ascunse = [];
   var nepreluate = [];
   try {
-    // 1. Ofertele produselor, copiate imediat după oferta comercială.
+    // 1. Ofertele produselor, copiate imediat după pagina de start.
     produse.forEach(function (p) {
       var foaieSursa;
       try {
@@ -77,7 +94,7 @@ function descarcaOfertaCompleta() {
       temporare.push(copie);
     });
 
-    // 2. Rămân vizibile doar oferta și fișele.
+    // 2. Rămân vizibile doar pagina de start și ofertele produselor.
     var pastrate = [oferta.getSheetId()].concat(temporare.map(function (t) { return t.getSheetId(); }));
     ss.setActiveSheet(oferta);
     ss.getSheets().forEach(function (s) {
@@ -102,10 +119,11 @@ function descarcaOfertaCompleta() {
     if (raspuns.getResponseCode() !== 200) {
       throw new Error('exportul PDF a răspuns cu codul ' + raspuns.getResponseCode());
     }
-    var fisier = dosar().createFile(raspuns.getBlob().setName(numeFisier(oferta)));
-    arataRezultat(fisier, temporare.length, faraOferta, nepreluate);
+    var fisier = dosar().createFile(raspuns.getBlob().setName(numeFisier(ss)));
+    return { fisier: fisier, nrFise: temporare.length, faraOferta: faraOferta, nepreluate: nepreluate };
   } catch (e) {
     ui.alert('Oferta completă nu s-a putut face: ' + e.message);
+    return null;
   } finally {
     ascunse.forEach(function (s) { s.showSheet(); });
     ss.setActiveSheet(oferta);
@@ -151,31 +169,46 @@ function dosar() {
   return gasite.hasNext() ? gasite.next() : DriveApp.createFolder(DOSAR_PDF);
 }
 
-function numeFisier(oferta) {
-  var client = String(oferta.getRange('C12').getValue()).trim() || 'client';
-  var data = oferta.getRange('F8').getValue();
+function valoare(ss, numeCamp) {
+  var r = ss.getRangeByName(numeCamp);
+  return r ? r.getValue() : '';
+}
+
+function numeFisier(ss) {
+  var client = String(valoare(ss, 'OfertaClient')).trim() || 'client';
+  var data = valoare(ss, 'OfertaData');
   var zi = Utilities.formatDate(data instanceof Date ? data : new Date(),
                                 Session.getScriptTimeZone(), 'dd.MM.yyyy');
-  var nr = String(oferta.getRange('C8').getValue()).trim();
+  var nr = String(valoare(ss, 'OfertaNr')).trim();
   var nume = 'Oferta ' + (nr ? nr + ' ' : '') + client + ' ' + zi;
   return nume.replace(/[\\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim() + '.pdf';
 }
 
-function arataRezultat(fisier, nrFise, faraOferta, nepreluate) {
+function arataRezultat(rezultat, pentruTipar) {
+  var fisier = rezultat.fisier;
   var descarcare = 'https://drive.google.com/uc?export=download&id=' + fisier.getId();
+  var vizualizare = 'https://drive.google.com/file/d/' + fisier.getId() + '/view';
   var html = '<div style="font-family:Arial,sans-serif;font-size:13px;line-height:1.5">' +
-    '<p><b>' + esc(fisier.getName()) + '</b><br>Oferta comercială + ' + nrFise +
-    (nrFise === 1 ? ' fișă de produs.' : ' fișe de produs.') + '</p>';
-  if (faraOferta.length) {
-    html += '<p>Fără ofertă de produs în listă: ' + esc(faraOferta.join(', ')) + '</p>';
+    '<p><b>' + esc(fisier.getName()) + '</b><br>Pagina de start + ' + rezultat.nrFise +
+    (rezultat.nrFise === 1 ? ' ofertă de produs.' : ' oferte de produs.') + '</p>';
+  if (rezultat.faraOferta.length) {
+    html += '<p>Fără ofertă de produs în listă: ' + esc(rezultat.faraOferta.join(', ')) + '</p>';
   }
-  if (nepreluate.length) {
-    html += '<p style="color:#C00000">Nu am putut deschide: ' + esc(nepreluate.join('; ')) + '</p>';
+  if (rezultat.nepreluate.length) {
+    html += '<p style="color:#C00000">Nu am putut deschide: ' + esc(rezultat.nepreluate.join('; ')) + '</p>';
   }
-  html += '<p><a href="' + descarcare + '" target="_blank">Descarcă PDF-ul</a> &nbsp;·&nbsp; ' +
-    '<a href="' + fisier.getUrl() + '" target="_blank">Deschide în Drive</a></p></div>';
+  if (pentruTipar) {
+    html += '<p><a href="' + vizualizare + '" target="_blank">Deschide PDF-ul pentru tipar</a>' +
+      ' (în fereastra nouă apăsați Ctrl+P / ⌘P)</p>' +
+      '<script>window.open(' + JSON.stringify(vizualizare) + ', "_blank");</script>';
+  } else {
+    html += '<p><a href="' + descarcare + '" target="_blank">Descarcă PDF-ul</a> &nbsp;·&nbsp; ' +
+      '<a href="' + vizualizare + '" target="_blank">Deschide în Drive</a></p>' +
+      '<script>window.open(' + JSON.stringify(descarcare) + ', "_blank");</script>';
+  }
+  html += '</div>';
   SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html).setWidth(460).setHeight(200),
+    HtmlService.createHtmlOutput(html).setWidth(480).setHeight(210),
     'Oferta completă e gata'
   );
 }

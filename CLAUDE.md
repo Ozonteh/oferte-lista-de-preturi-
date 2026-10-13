@@ -23,7 +23,8 @@ toți furnizorii. Citește `README.md` pentru structură și comenzi.
 5. Verifică: recalculează o **copie** cu `recalc.py` din skill-ul xlsx (0 erori),
    randează în PDF cu LibreOffice și uită-te la pagini. Nu recalcula fișierul din
    `output/` direct: LibreOffice îl rescrie.
-6. Commit pe branch-ul de lucru, cu `produse.csv`, `imagini/` și fișierul din `output/`.
+6. Commit pe branch-ul de lucru, cu `produse.csv` și `imagini/`. Fișierul din `output/`
+   nu se urcă (conține ștampila; repo-ul e public): îl trimiți utilizatorului direct.
 
 ## Ce nu se face
 
@@ -53,7 +54,10 @@ toți furnizorii. Citește `README.md` pentru structură și comenzi.
 - Google Sheets ignoră zona de tipar din Excel și tipărește tot ce e pe foaie:
   pe foile care se tipăresc nu pune nimic în afara tabelului (instrucțiunile stau
   pe foaia „Instrucțiuni”; datele ajutătoare în coloane ascunse).
-- `scripts/apps_script/oferta_completa.gs` citește produsele din B19:B28 și linkul
-  ofertei din coloana ascunsă I a foii „Ofertă comercială”. Dacă muți tabelul,
-  schimbă și constantele din script.
+- „Ofertă comercială” e pagina de start după designul Ozonteh (titlu League Spartan
+  42 `#053B57`, text Open Sans gri). `oferta_completa.gs` citește câmpurile prin
+  nume (`OfertaProduse`, `OfertaLinkuri`, `OfertaClient`, `OfertaNr`, `OfertaData`);
+  dacă muți tabelul, numele se mută odată cu el.
+- **Repo public**: semnătura, ștampila, poza și datele reprezentantului stau doar în
+  `brand/privat/` (ignorat de git). Nu le urca niciodată și nu le pune în alt dosar.
 - Google Sheets nu are indentare: textul de pe benzi primește spații în față.

@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 ~$*.xlsx
 .~lock.*#
+
+# Ștampila, semnătura și datele reprezentantului nu se urcă (repo public).
+brand/privat/
+# Fișierele generate conțin ștampila: se trimit direct, nu prin GitHub.
+output/*.xlsx
