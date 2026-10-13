@@ -15,10 +15,16 @@ un folder cu datele lui, iar scriptul face din ele fișierul Excel final.
    `brand/ozonteh.json`. Prețul în lei se recalculează singur.
 2. **Ofertă comercială**: pagina de start a ofertei, după designul Ozonteh
    („Oferta KVINT”): titlu, „Pentru: client”, dată, număr, valabilitate,
-   reprezentantul cu poză și contacte, tabelul de produse (până la 6), textul
-   de mulțumire, semnătura cu ștampila. Produsul se alege din listă; prețul,
-   linkul și totalul fără TVA (EUR și MDL) se completează singure. Câmpurile
-   galbene sunt de completat și devin albe după completare.
+   reprezentantul cu poză și contacte, tabelul de produse (până la 6, cu poza
+   produsului ales), textul de mulțumire, semnătura cu ștampila. Produsul se
+   alege din listă; poza, prețul, linkul și totalul fără TVA (EUR și MDL) se
+   completează singure. Câmpurile galbene sunt de completat și devin albe după
+   completare.
+
+   Poza din ofertă se încarcă în Google Sheets cu `IMAGE()` de pe GitHub (adresa e
+   în „Catalog”, coloana H, legată de commitul pozei). De aceea: o poză nouă se urcă
+   (commit + push) **înainte** de generare, iar dacă repo-ul devine privat, pozele din
+   ofertă nu se mai văd (cele din „Lista de prețuri” rămân, sunt în fișier).
 
 3. **Instrucțiuni**: cum se completează oferta și cum se scoate PDF-ul.
 

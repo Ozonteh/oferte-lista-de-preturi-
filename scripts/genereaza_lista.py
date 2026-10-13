@@ -18,6 +18,7 @@ import datetime as dt
 import io
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -374,10 +375,32 @@ def foaia_lista(wb, brand, config, produse, folder):
 
 # ---------------------------------------------------------------- foaia 3
 
-def foaia_catalog(wb, randuri_produse):
+def url_poza(brand, folder, imagine):
+    """Adresa publică a pozei pe GitHub, legată de commitul ei (nu se strică la alt branch).
+
+    Google Sheets o arată în ofertă cu IMAGE(). Poza trebuie să fie deja urcată
+    (commit + push); altfel adresa n-ar exista încă și poza nu se vede.
+    """
+    if not imagine:
+        return ""
+    cale = (folder / "imagini" / imagine).resolve().relative_to(RADACINA).as_posix()
+
+    def git(*argumente):
+        return subprocess.run(["git", *argumente], cwd=RADACINA, capture_output=True,
+                              text=True).stdout.strip()
+
+    commit = git("log", "-1", "--format=%H", "--", cale)
+    if not commit or git("status", "--porcelain", "--", cale):
+        print(f"  atenție: {cale} nu e urcată pe GitHub; în ofertă poza apare după commit + "
+              "push și o nouă generare")
+        return ""
+    return brand["url_poze"].format(commit=commit, cale=cale)
+
+
+def foaia_catalog(wb, randuri_produse, brand, folder):
     ws = wb.create_sheet(FOAIE_CATALOG)
     cap = ["Denumire", "Link produs", "Preț final EUR", "Preț listă EUR", "Preț promo EUR",
-           "Link ofertă", "Categorie"]
+           "Link ofertă", "Categorie", "Poza (URL)"]
     for i, text in enumerate(cap, start=1):
         ws.cell(1, i, text).font = font(bold=True)
     lista = f"'{FOAIE_LISTA}'!"
@@ -390,7 +413,8 @@ def foaia_catalog(wb, randuri_produse):
         ws.cell(i, 5, f'=IF(ISNUMBER({lista}E{rand}),{lista}E{rand},"")')
         ws.cell(i, 6, p["link_oferta"] or None)
         ws.cell(i, 7, p["categorie"])
-    for litera, latime in zip("ABCDEFG", (55, 60, 14, 14, 14, 60, 30)):
+        ws.cell(i, 8, url_poza(brand, folder, p["imagine"]) or None)
+    for litera, latime in zip("ABCDEFGH", (55, 60, 14, 14, 14, 60, 30, 60)):
         ws.column_dimensions[litera].width = latime
     ws.sheet_state = "hidden"
     return len(randuri_produse) + 1
@@ -401,9 +425,10 @@ def foaia_catalog(wb, randuri_produse):
 def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     """Pagina de start a ofertei, după designul Ozonteh („Oferta KVINT”).
 
-    Tabelul de produse e în A:H; coloana I (ascunsă, nu se tipărește) ține linkul
-    la oferta fiecărui produs ales, din care meniul „Ozonteh” face PDF-ul complet.
-    Câmpurile pe care le citește scriptul au nume (Oferta*), nu adrese fixe.
+    Tabelul de produse e în A:I (cu poza produsului ales, prin IMAGE()); coloana J
+    (ascunsă, nu se tipărește) ține linkul la oferta fiecărui produs ales, din care
+    meniul „Ozonteh” face PDF-ul complet. Câmpurile pe care le citește scriptul au
+    nume (Oferta*), nu adrese fixe.
     """
     ws = wb.create_sheet(FOAIE_OFERTA, 1)
     ws.sheet_view.showGridLines = False
@@ -411,10 +436,12 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     titlu = brand["culoare_titlu"]
     rep = citeste_reprezentant()
     privat = RADACINA / "brand" / "privat"
-    for litera, latime in {"A": 5, "B": 40, "C": 12, "D": 7, "E": 13, "F": 9, "G": 13, "H": 15,
-                           "I": 40}.items():
+    latimi = {"A": 5, "B": 12, "C": 34, "D": 11, "E": 7, "F": 12, "G": 10, "H": 13, "I": 15,
+              "J": 40}
+    for litera, latime in latimi.items():
         ws.column_dimensions[litera].width = latime
-    ws.column_dimensions["I"].hidden = True
+    ws.column_dimensions["J"].hidden = True
+    dreapta_hi = latime_px(ws, "H") + latime_px(ws, "I")
 
     def text(**kw):
         kw.setdefault("name", FONT_TEXT)
@@ -435,140 +462,139 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
         return scrie(ws, interval.split(":")[0], valoare, **stil)
 
     inaltimi = {1: 8, 2: 26, 3: 26, 4: 22, 5: 10, 6: 48, 7: 48, 8: 10, 9: 30, 10: 10, 11: 24,
-                12: 24, 13: 24, 14: 14, 15: 22, 16: 30, 23: 24, 24: 16, 29: 10, 33: 14, 34: 16}
+                12: 24, 13: 24, 14: 14, 15: 22, 16: 40, 24: 16, 29: 10, 33: 14, 34: 16}
     for r in range(1, 40):
         ws.row_dimensions[r].height = inaltimi.get(r, 20)
 
     # Antet: siglă, link + QR spre site, ilustrație
     pune_imagine(ws, RADACINA / "brand" / "logo-ozonteh.png", 0, 1, 230, 72, dx=4, dy=2)
-    c = merge("C2:E4", "Apasă aici ➡️, sau scanează\npentru site-ul Ozonteh!",
+    c = merge("D2:F4", "Apasă aici ➡️, sau scanează\npentru site-ul Ozonteh!",
               font=font(name="Verdana", size=9, bold=True, color="005681", underline="single"),
               alignment=Alignment(horizontal="center", vertical="center", wrap_text=True))
     c.hyperlink = brand["site"]
-    pune_imagine(ws, RADACINA / "brand" / "qr-ozonteh-net.png", 5, 1, 64, 64, dx=0, dy=6)
-    pune_imagine(ws, RADACINA / "brand" / "ilustratie.png", 6, 0, 160, 92, dy=6, taie=True,
-                 zona_dreapta=latime_px(ws, "G") + latime_px(ws, "H"))
+    pune_imagine(ws, RADACINA / "brand" / "qr-ozonteh-net.png", 6, 1, 64, 64, dx=4, dy=6)
+    pune_imagine(ws, RADACINA / "brand" / "ilustratie.png", 7, 0, 160, 92, dy=6, taie=True,
+                 zona_dreapta=dreapta_hi)
 
     # Titlu
     for r, cuvant in ((6, "OFERTĂ"), (7, "COMERCIALĂ")):
-        merge(f"A{r}:E{r}", SPATIU + cuvant, font=font(name=FONT_TITLU, size=42, bold=True, color=titlu),
+        merge(f"A{r}:F{r}", SPATIU + cuvant, font=font(name=FONT_TITLU, size=42, bold=True, color=titlu),
               alignment=Alignment(vertical="center"))
 
     # Reprezentant (dreapta sus)
-    merge("G6:H6", "Reprezentantul tău\nOzonteh", font=text(size=10),
+    merge("H6:I6", "Reprezentantul tău\nOzonteh", font=text(size=10),
           alignment=Alignment(horizontal="center", vertical="bottom", wrap_text=True))
-    for col in "GH":
+    for col in "HI":
         ws[f"{col}6"].border = chenar_jos("595959", "medium")
     if rep.get("poza") and (privat / rep["poza"]).is_file():
-        pune_imagine(ws, privat / rep["poza"], 6, 6, 120, 118, dy=4,
-                     zona_dreapta=(latime_px(ws, "G") + latime_px(ws, "H") + 120) // 2 + 8)
-    merge("G11:H11", rep.get("nume", ""), font=text(size=12),
+        pune_imagine(ws, privat / rep["poza"], 7, 6, 120, 118, dy=4,
+                     zona_dreapta=(dreapta_hi + 120) // 2 + 8)
+    merge("H11:I11", rep.get("nume", ""), font=text(size=12),
           alignment=Alignment(horizontal="center", vertical="center"))
     cutie = Border(*(Side(style="medium", color="595959"),) * 4)
     for r, valoare, url in ((12, f"📞 {rep.get('telefon', '')}", None),
                             (13, rep.get("email", ""), f"mailto:{rep.get('email', '')}")):
-        c = merge(f"G{r}:H{r}", valoare, font=text(size=11),
+        c = merge(f"H{r}:I{r}", valoare, font=text(size=11),
                   alignment=Alignment(horizontal="center", vertical="center"))
         if url and rep.get("email"):
             c.hyperlink = url
-        for col in "GH":
+        for col in "HI":
             ws[f"{col}{r}"].border = cutie
 
     # Client, dată, număr, valabilitate
-    merge("A9:F9", None, font=text(size=16), number_format='"Pentru:  "@',
+    merge("A9:G9", None, font=text(size=16), number_format='"Pentru:  "@',
           alignment=Alignment(vertical="center"))
-    galben_daca("A9:F9", '$A$9=""')
+    galben_daca("A9:G9", '$A$9=""')
     nume("OfertaClient", "$A$9")
-    merge("A11:B11", "=TODAY()", font=text(size=12), number_format="dd.mmmm.yyyy",
+    merge("A11:C11", "=TODAY()", font=text(size=12), number_format="dd.mmmm.yyyy",
           alignment=Alignment(horizontal="center", vertical="center"))
     nume("OfertaData", "$A$11")
-    merge("C11:D11", None, font=text(size=12), number_format='"Nr. "0;;;"Nr. "@',
+    merge("D11:E11", None, font=text(size=12), number_format='"Nr. "0;;;"Nr. "@',
           alignment=Alignment(horizontal="center", vertical="center"))
-    galben_daca("C11:D11", '$C$11=""')
-    nume("OfertaNr", "$C$11")
-    scrie(ws, "E11", "Valabilitate", font=text(size=12),
-          alignment=Alignment(horizontal="center", vertical="center"))
-    scrie(ws, "F11", brand["valabilitate_oferta_zile"], font=text(size=12), number_format='0" Zile"',
+    galben_daca("D11:E11", '$D$11=""')
+    nume("OfertaNr", "$D$11")
+    # „Valabilitate 60 Zile” într-o singură celulă: numărul se alege din listă, textul e format.
+    merge("F11:G11", brand["valabilitate_oferta_zile"], font=text(size=11),
+          number_format='"Valabilitate "0" Zile"',
           alignment=Alignment(horizontal="center", vertical="center"))
     dv_zile = DataValidation(type="list", allow_blank=True,
                              formula1='"' + ",".join(str(z) for z in brand["valabilitate_variante"]) + '"')
     ws.add_data_validation(dv_zile)
     dv_zile.add("F11")
     separator = Side(style="medium", color="595959")
-    for coord in ("C11", "E11"):
+    for coord in ("D11", "F11"):
         ws[coord].border = Border(left=separator)
 
     # Produse
-    merge("A15:H15", SPATIU + "PRODUSE OFERITE", font=font(size=11, bold=True, color="FFFFFF"),
+    merge("A15:I15", SPATIU + "PRODUSE OFERITE", font=font(size=11, bold=True, color="FFFFFF"),
           fill=umplere(culoare), alignment=Alignment(vertical="center"))
-    cap = ["Nr.", "Produs (alegeți din listă)", "Pagina\nprodusului", "Cant.",
-           "Preț unitar\nEUR fără TVA", "Reducere\n%", "Total EUR\nfără TVA", "Total MDL\nfără TVA"]
+    cap = ["Nr.", "Foto", "Produs (alegeți din listă)", "Pagina\nprodusului", "Cant.",
+           "Preț unitar\nEUR", "Reducere", "Total EUR\nfără TVA", "Total MDL\nfără TVA"]
     for i, valoare in enumerate(cap, start=1):
         c = ws.cell(16, i, valoare)
-        c.font = font(bold=True)
+        c.font = font(size=9, bold=True)
         c.fill = umplere("E3EEF6")
         c.border = chenar_tot()
         c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    scrie(ws, "I16", "Link ofertă produs (pentru meniul Ozonteh)", font=font(size=9, color=GRI))
+    scrie(ws, "J16", "Link ofertă produs (pentru meniul Ozonteh)", font=font(size=9, color=GRI))
 
     prima, ultima = PRIMA_LINIE_OFERTA, PRIMA_LINIE_OFERTA + LINII_OFERTA - 1
-    nume_cat = f"{FOAIE_CATALOG}!$A$2:$A${ultim_rand_catalog}"
-    linkuri = f"{FOAIE_CATALOG}!$B$2:$B${ultim_rand_catalog}"
-    preturi = f"{FOAIE_CATALOG}!$C$2:$C${ultim_rand_catalog}"
-    oferte_produse = f"{FOAIE_CATALOG}!$F$2:$F${ultim_rand_catalog}"
+    interval = lambda col: f"{FOAIE_CATALOG}!${col}$2:${col}${ultim_rand_catalog}"
+    nume_cat = interval("A")
     dv = DataValidation(type="list", formula1=nume_cat, allow_blank=True, showErrorMessage=True,
                         errorTitle="Produs necunoscut",
                         error="Alegeți produsul din listă (săgeata din dreapta celulei).")
     ws.add_data_validation(dv)
     centru = Alignment(horizontal="center", vertical="center", wrap_text=True)
     for r in range(prima, ultima + 1):
-        ws.row_dimensions[r].height = 26
-        scrie(ws, f"A{r}", f'=IF(B{r}="","",ROW()-{prima - 1})', font=font(color=GRI), alignment=centru)
-        scrie(ws, f"B{r}", font=font(), alignment=Alignment(vertical="center", wrap_text=True))
-        dv.add(f"B{r}")
+        ws.row_dimensions[r].height = 46
+        din_catalog = lambda col: f"INDEX({interval(col)},MATCH(C{r},{nume_cat},0))"
+        scrie(ws, f"A{r}", f'=IF(C{r}="","",ROW()-{prima - 1})', font=font(color=GRI), alignment=centru)
+        # Poza produsului ales: Google Sheets o încarcă de pe GitHub (Catalog, coloana H).
+        scrie(ws, f"B{r}", f'=IF(C{r}="","",IFERROR(IMAGE({din_catalog("H")}),""))', alignment=centru)
+        scrie(ws, f"C{r}", font=font(), alignment=Alignment(vertical="center", wrap_text=True))
+        dv.add(f"C{r}")
         # Galben: primul produs cât e gol și cantitatea lipsă; rândurile goale rămân albe la tipar.
         if r == prima:
-            galben_daca(f"B{r}", f'$B{r}=""')
-        galben_daca(f"D{r}", f'AND($B{r}<>"",$D{r}="")')
-        link_produs = f"INDEX({linkuri},MATCH(B{r},{nume_cat},0))"
-        scrie(ws, f"C{r}",
-              f'=IF(B{r}="","",IFERROR(IF({link_produs}&""="","",'
-              f'HYPERLINK({link_produs},"Vezi produs")),""))',
+            galben_daca(f"C{r}", f'$C{r}=""')
+        galben_daca(f"E{r}", f'AND($C{r}<>"",$E{r}="")')
+        scrie(ws, f"D{r}",
+              f'=IF(C{r}="","",IFERROR(IF({din_catalog("B")}&""="","",'
+              f'HYPERLINK({din_catalog("B")},"Vezi produs")),""))',
               font=font(color=LINK, underline="single"), alignment=centru)
-        scrie(ws, f"D{r}", font=font(), alignment=centru)
-        scrie(ws, f"E{r}",
-              f'=IF(B{r}="","",IFERROR(INDEX({preturi},MATCH(B{r},{nume_cat},0)),"nu e în listă"))',
+        scrie(ws, f"E{r}", font=font(), alignment=centru)
+        scrie(ws, f"F{r}", f'=IF(C{r}="","",IFERROR({din_catalog("C")},"nu e în listă"))',
               font=font(), number_format=FORMAT_EUR, alignment=centru)
-        scrie(ws, f"F{r}", font=font(), number_format="0%", alignment=centru)
-        scrie(ws, f"G{r}",
-              f'=IF(AND(ISNUMBER(D{r}),ISNUMBER(E{r})),ROUND(D{r}*E{r}*(1-N(F{r})),2),"")',
+        scrie(ws, f"G{r}", font=font(), number_format="0%", alignment=centru)
+        scrie(ws, f"H{r}",
+              f'=IF(AND(ISNUMBER(E{r}),ISNUMBER(F{r})),ROUND(E{r}*F{r}*(1-N(G{r})),2),"")',
               font=font(bold=True), number_format=FORMAT_EUR, alignment=centru)
-        scrie(ws, f"H{r}", f'=IF(ISNUMBER(G{r}),ROUND(G{r}*Curs,0),"")',
+        scrie(ws, f"I{r}", f'=IF(ISNUMBER(H{r}),ROUND(H{r}*Curs,0),"")',
               font=font(), number_format=FORMAT_MDL, alignment=centru)
-        scrie(ws, f"I{r}",
-              f'=IF(B{r}="","",IFERROR(INDEX({oferte_produse},MATCH(B{r},{nume_cat},0))&"",""))',
+        scrie(ws, f"J{r}", f'=IF(C{r}="","",IFERROR({din_catalog("F")}&"",""))',
               font=font(size=9, color=GRI))
-        for col in "ABCDEFGH":
+        for col in "ABCDEFGHI":
             ws[f"{col}{r}"].border = chenar_tot()
-    nume("OfertaProduse", f"$B${prima}:$B${ultima}")
-    nume("OfertaLinkuri", f"$I${prima}:$I${ultima}")
+    nume("OfertaProduse", f"$C${prima}:$C${ultima}")
+    nume("OfertaLinkuri", f"$J${prima}:$J${ultima}")
 
     # Rând exemplu: primul produs din listă, o bucată.
-    ws[f"B{prima}"] = produse[0]["denumire"]
-    ws[f"D{prima}"] = 1
+    ws[f"C{prima}"] = produse[0]["denumire"]
+    ws[f"E{prima}"] = 1
 
     t = ultima + 1
-    merge(f"C{t}:F{t}", "TOTAL fără TVA", font=font(size=11, bold=True),
+    ws.row_dimensions[t].height = 24
+    merge(f"D{t}:G{t}", "TOTAL fără TVA", font=font(size=11, bold=True),
           alignment=Alignment(horizontal="right", vertical="center"))
-    for col, formula, fmt in (("G", f"=SUM(G{prima}:G{ultima})", FORMAT_EUR),
-                              ("H", f"=SUM(H{prima}:H{ultima})", FORMAT_MDL)):
+    for col, formula, fmt in (("H", f"=SUM(H{prima}:H{ultima})", FORMAT_EUR),
+                              ("I", f"=SUM(I{prima}:I{ultima})", FORMAT_MDL)):
         scrie(ws, f"{col}{t}", formula, font=font(size=11, bold=True, color="FFFFFF"),
               number_format=fmt, fill=umplere(culoare), border=chenar_tot(),
               alignment=Alignment(horizontal="center", vertical="center"))
 
     # Mulțumire
     p = t + 2
-    ws.merge_cells(f"A{p}:H{p + 3}")
+    ws.merge_cells(f"A{p}:I{p + 3}")
     multumire = CellRichText()
     for i, bucata in enumerate(brand["text_multumire"]):
         multumire.append(TextBlock(InlineFont(rFont=FONT_TEXT, sz=11, b=True,
@@ -578,10 +604,10 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     # Semnătură și ștampilă
     s = p + 5
     for i, valoare in enumerate([brand["firma"], rep.get("functie", ""), rep.get("nume", "")]):
-        scrie(ws, f"C{s + i}", valoare, font=text(size=11), alignment=Alignment(vertical="center"))
+        scrie(ws, f"D{s + i}", valoare, font=text(size=11), alignment=Alignment(vertical="center"))
     if rep.get("semnatura") and (privat / rep["semnatura"]).is_file():
-        pune_imagine(ws, privat / rep["semnatura"], 5, s - 2, 190, 112, dy=0, taie=True,
-                     zona_dreapta=latime_px(ws, "F") + latime_px(ws, "G") + latime_px(ws, "H"))
+        pune_imagine(ws, privat / rep["semnatura"], 6, s - 2, 190, 112, dy=0, taie=True,
+                     zona_dreapta=latime_px(ws, "G") + dreapta_hi)
 
     # Subsol
     f = s + 5
@@ -591,19 +617,17 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     for i in range(3):
         ws.row_dimensions[f + i].height = 16
         scrie(ws, f"A{f + i}", stanga[i], font=text(size=9))
-        scrie(ws, f"H{f + i}", dreapta[i], font=text(size=9), alignment=Alignment(horizontal="right"))
-    for col in "AB":
-        ws[f"{col}{f}"].border = Border(top=linie)
-        ws[f"{col}{f + 2}"].border = Border(bottom=linie)
-    for col in "GH":
-        ws[f"{col}{f}"].border = Border(top=linie)
-        ws[f"{col}{f + 2}"].border = Border(bottom=linie)
-    pune_imagine(ws, RADACINA / "brand" / "logo-ozonteh-complet.png", 2, f - 2, 90, 72, dy=0, taie=True,
-                 zona_dreapta=(latime_px(ws, "C") + latime_px(ws, "D") + latime_px(ws, "E")
-                               + latime_px(ws, "F") + 90) // 2 + 8)
+        scrie(ws, f"I{f + i}", dreapta[i], font=text(size=9), alignment=Alignment(horizontal="right"))
+    for cols in ("ABC", "HI"):
+        for col in cols:
+            ws[f"{col}{f}"].border = Border(top=linie)
+            ws[f"{col}{f + 2}"].border = Border(bottom=linie)
+    centru_subsol = sum(latime_px(ws, c) for c in "DEFG")
+    pune_imagine(ws, RADACINA / "brand" / "logo-ozonteh-complet.png", 3, f - 2, 90, 72, dy=0, taie=True,
+                 zona_dreapta=(centru_subsol + 90) // 2 + 8)
     ultim_rand = f + 2
 
-    ws.print_area = f"A1:H{ultim_rand}"
+    ws.print_area = f"A1:I{ultim_rand}"
     ws.page_setup.orientation = "portrait"
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
     ws.page_setup.fitToWidth = 1
@@ -698,7 +722,7 @@ def genereaza(folder):
     config, produse = citeste_furnizor(folder)
     wb = Workbook()
     randuri_produse = foaia_lista(wb, brand, config, produse, folder)
-    ultim_rand_catalog = foaia_catalog(wb, randuri_produse)
+    ultim_rand_catalog = foaia_catalog(wb, randuri_produse, brand, folder)
     foaia_oferta(wb, brand, produse, ultim_rand_catalog)
     foaia_instructiuni(wb, brand)
     wb.active = 0

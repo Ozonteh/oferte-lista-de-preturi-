@@ -58,6 +58,9 @@ toți furnizorii. Citește `README.md` pentru structură și comenzi.
   42 `#053B57`, text Open Sans gri). `oferta_completa.gs` citește câmpurile prin
   nume (`OfertaProduse`, `OfertaLinkuri`, `OfertaClient`, `OfertaNr`, `OfertaData`);
   dacă muți tabelul, numele se mută odată cu el.
+- Poza din tabelul ofertei = `IMAGE()` cu adresa raw GitHub a pozei (Catalog, coloana H,
+  `url_poze` din `brand/ozonteh.json`, legată de commitul pozei). Pozele noi: commit +
+  push, apoi generează din nou; scriptul avertizează dacă o poză nu e încă urcată.
 - **Repo public**: semnătura, ștampila, poza și datele reprezentantului stau doar în
   `brand/privat/` (ignorat de git). Nu le urca niciodată și nu le pune în alt dosar.
 - Google Sheets nu are indentare: textul de pe benzi primește spații în față.

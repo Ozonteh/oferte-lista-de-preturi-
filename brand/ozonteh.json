@@ -1,19 +1,30 @@
 {
   "firma": "„Ozonteh Impex” SRL",
   "adresa": "MD-3701, mun. Strășeni, șos. Chișinău 69, Republica Moldova",
-  "adresa_linii": ["MD-3701, Republica Moldova", "mun. Strășeni, șos. Chișinău 69"],
+  "adresa_linii": [
+    "MD-3701, Republica Moldova",
+    "mun. Strășeni, șos. Chișinău 69"
+  ],
   "cod_fiscal": "1013600012644",
   "cod_tva": "8600854",
   "email": "office@ozonteh.md",
   "site": "https://ozonteh.net/",
   "culoare_principala": "00497E",
   "culoare_titlu": "053B57",
-  "curs_eur_mdl": 20.10,
+  "curs_eur_mdl": 20.1,
   "valabilitate_oferta_zile": 60,
-  "valabilitate_variante": [5, 10, 15, 25, 30, 60],
+  "valabilitate_variante": [
+    5,
+    10,
+    15,
+    25,
+    30,
+    60
+  ],
   "text_multumire": [
     "Vă mulțumim pentru interesul acordat produselor și serviciilor oferite de compania ",
     "Ozonteh Impex S.R.L.",
     " Ne angajăm să răspundem prompt și profesionist tuturor cerințelor Dumneavoastră și să oferim soluții tehnice adaptate perfect necesităților exprimate.\nMai jos găsiți oferta personalizată, concepută în conformitate cu solicitarea transmisă."
-  ]
+  ],
+  "url_poze": "https://raw.githubusercontent.com/Ozonteh/oferte-lista-de-preturi-/{commit}/{cale}"
 }
