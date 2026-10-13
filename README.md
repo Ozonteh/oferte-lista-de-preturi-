@@ -10,7 +10,9 @@ un folder cu datele lui, iar scriptul face din ele fișierul Excel final.
 1. **Lista de prețuri**: produsele grupate pe categorii, fiecare cu:
    Nr. · Foto · Denumire produs · Preț EUR (fără TVA) · Preț promo EUR ·
    Preț MDL · Notă · link „Vezi pe site” · link „Deschide oferta”.
-   Cursul EUR/MDL e în celula **F3**, iar prețul în lei se recalculează singur.
+   Cursul EUR/MDL e în celula **F3**: în Google Sheets vine live din Google Finance
+   (`GOOGLEFINANCE("CURRENCY:EURMDL")`), în Excel e cursul de rezervă din
+   `brand/ozonteh.json`. Prețul în lei se recalculează singur.
 2. **Ofertă comercială**: ofertă pentru client, de o pagină A4. Produsul se
    alege din listă, iar prețul, linkul și totalurile (fără TVA, TVA, cu TVA, în
    EUR și MDL) se completează singure. Câmpurile galbene sunt de completat și
@@ -92,8 +94,7 @@ Pentru toți furnizorii odată: `python scripts/genereaza_lista.py --toti`.
 ## În Google Sheets
 
 Fișier → Import → Încărcare → alegeți fișierul .xlsx. Pozele, linkurile, lista
-de produse din ofertă și formulele rămân. Cursul din F3 se poate lega automat
-la Google Finance cu `=GOOGLEFINANCE("CURRENCY:EURMDL")`.
+de produse din ofertă și formulele rămân. Cursul din F3 se actualizează singur.
 
 ## `furnizor.json`
 
@@ -107,7 +108,7 @@ la Google Finance cu `=GOOGLEFINANCE("CURRENCY:EURMDL")`.
 
 ## Setări comune
 
-`brand/ozonteh.json`: datele firmei, culoarea, cursul implicit, cota TVA,
+`brand/ozonteh.json`: datele firmei, culoarea, cursul de rezervă (pentru Excel), cota TVA,
 valabilitatea ofertei și condițiile din ofertă (garanție, livrare, finanțare,
 service). Se schimbă o dată aici și apar la toți furnizorii la următoarea generare.
 

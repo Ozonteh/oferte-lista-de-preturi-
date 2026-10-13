@@ -44,6 +44,8 @@ toți furnizorii. Citește `README.md` pentru structură și comenzi.
 ## Detalii de model de păstrat
 
 - Prețurile sunt în EUR, fără TVA. Lei = preț final (promo dacă există) × curs (F3).
+- F3 = `IFERROR(GOOGLEFINANCE("CURRENCY:EURMDL"), <curs_eur_mdl>)`: live în Google
+  Sheets, curs de rezervă în Excel/LibreOffice (unde GOOGLEFINANCE dă #NAME?).
 - Foaia „Catalog” e ascunsă; oferta citește din ea prin INDEX/MATCH după denumire.
 - Câmpurile de completat din ofertă sunt galbene doar cât sunt goale (formatare
   condițională), ca PDF-ul pentru client să iasă curat.

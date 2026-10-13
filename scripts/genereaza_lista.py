@@ -263,7 +263,10 @@ def foaia_lista(wb, brand, config, produse, folder):
           alignment=Alignment(vertical="center"))
     scrie(ws, "E3", "Curs EUR/MDL:", font=font(bold=True),
           alignment=Alignment(horizontal="right", vertical="center"))
-    scrie(ws, "F3", brand["curs_eur_mdl"], font=font(bold=True, color="0000FF"),
+    # Curs live în Google Sheets; Excel nu are GOOGLEFINANCE (#NAME?), deci IFERROR
+    # cade pe cursul de rezervă din brand/ozonteh.json.
+    scrie(ws, "F3", f'=IFERROR(GOOGLEFINANCE("CURRENCY:EURMDL"),{brand["curs_eur_mdl"]})',
+          font=font(bold=True, color=culoare),
           border=chenar_tot(), number_format="0.00",
           alignment=Alignment(horizontal="center", vertical="center"))
     actualizat = dt.date.fromisoformat(config["data_actualizare"]).strftime("%d.%m.%Y")
@@ -339,8 +342,9 @@ def foaia_lista(wb, brand, config, produse, folder):
     note = [
         "* Preț MDL = prețul final (promo, dacă există) × cursul EUR/MDL din celula F3. "
         "Este orientativ.",
-        "Cursul se poate schimba direct în F3. În Google Sheets se poate lega automat: "
-        '=GOOGLEFINANCE("CURRENCY:EURMDL")',
+        "Cursul din F3 vine live din Google Finance (în Google Sheets). În Excel, sau dacă Google "
+        "Finance nu răspunde, se folosește cursul de rezervă "
+        + f"{brand['curs_eur_mdl']:.2f}".replace(".", ",") + ".",
         "Pentru o ofertă cu unul sau mai multe produse folosiți foaia „Ofertă comercială”.",
         f"{brand['firma']} · {brand['adresa']} · {brand['email']} · "
         f"{brand['site'].replace('https://', '').rstrip('/')}",
@@ -646,7 +650,9 @@ def foaia_instructiuni(wb, brand):
         ]),
         ("LISTA DE PREȚURI", [
             "Prețurile sunt în EUR, fără TVA. Prețul în lei = prețul final × cursul din F3.",
-            "În Google Sheets cursul se poate lega automat: în F3 scrieți =GOOGLEFINANCE(\"CURRENCY:EURMDL\").",
+            "Cursul din F3 se ia live din Google Finance (GOOGLEFINANCE, doar în Google Sheets). "
+            "În Excel apare cursul de rezervă din brand/ozonteh.json. Pentru un curs fix, "
+            "scrieți numărul direct în F3.",
         ]),
     ]
     rand = 2
