@@ -1,0 +1,19 @@
+{
+  "firma": "„Ozonteh Impex” SRL",
+  "adresa": "MD-3701, mun. Strășeni, șos. Chișinău 69, Republica Moldova",
+  "cod_fiscal": "1013600012644",
+  "cod_tva": "8600854",
+  "email": "office@ozonteh.md",
+  "site": "https://ozonteh.net/",
+  "culoare_principala": "00497E",
+  "curs_eur_mdl": 20.10,
+  "cota_tva": 0.20,
+  "valabilitate_oferta_zile": 14,
+  "conditii_oferta": [
+    ["Garanție", "12 luni."],
+    ["Livrare", "Termenul de livrare în funcție de stocul disponibil."],
+    ["Finanțare", "Asistență și consultanță calificată pentru aplicarea la sisteme de finanțare și subvenționare."],
+    ["Service", "Asistență tehnică în 48 de ore."],
+    ["Suport post-vânzare", "Susținem toți clienții printr-o echipă dedicată de piese și accesorii."]
+  ]
+}
