@@ -5,19 +5,23 @@ un folder cu datele lui, iar scriptul face din ele fișierul Excel final.
 
 ## Ce conține fișierul Excel
 
-`output/Lista de preturi - <Furnizor>.xlsx`, cu două foi vizibile:
+Un singur fișier pentru toți furnizorii: `output/Lista de preturi Ozonteh.xlsx`
+(`python scripts/genereaza_lista.py --toti`). Foile, în ordine: „Ofertă comercială”,
+„Instrucțiuni”, câte o foaie pe furnizor („Shaktiman”, „Tractoare”, …) și
+„Catalog” (ascunsă). Un furnizor nou = o foaie nouă în același fișier.
 
-1. **Lista de prețuri**: produsele grupate pe categorii, fiecare cu:
+1. **Foaia fiecărui furnizor** (lista de prețuri): produsele grupate pe categorii, fiecare cu:
    Nr. · Foto · Denumire produs · Preț EUR (fără TVA) · Preț promo EUR ·
    Preț MDL · Notă · link „Vezi pe site” · link „Deschide oferta”.
-   Cursul EUR/MDL e în celula **F3**: în Google Sheets vine live din Google Finance
-   (`GOOGLEFINANCE("CURRENCY:EURMDL")`), în Excel e cursul de rezervă din
-   `brand/ozonteh.json`. Prețul în lei se recalculează singur.
+   Cursul EUR/MDL e în celula **F3** a primei foi de furnizor: în Google Sheets vine
+   live din Google Finance (`GOOGLEFINANCE("CURRENCY:EURMDL")`), în Excel e cursul de
+   rezervă din `brand/ozonteh.json`. Celelalte foi îl preiau (`=Curs`). Prețul în lei
+   se recalculează singur.
 2. **Ofertă comercială**: pagina de start a ofertei, după designul Ozonteh
    („Oferta KVINT”): titlu, „Pentru: client”, dată, număr, valabilitate,
    reprezentantul cu poză și contacte, tabelul de produse (până la 6, cu poza
    produsului ales), textul de mulțumire, semnătura cu ștampila. Produsul se
-   alege din listă; poza, prețul, linkul și totalul fără TVA (EUR și MDL) se
+   alege din listă (produsele tuturor furnizorilor); poza, prețul, linkul și totalul fără TVA (EUR și MDL) se
    completează singure. Câmpurile galbene sunt de completat și devin albe după
    completare.
 
@@ -98,7 +102,8 @@ scripts/
    Scriptul oprește generarea la erori (denumiri dublate, prețuri nenumerice) și
    afișează atenționări (produse fără preț, fără link sau fără poză).
 
-Pentru toți furnizorii odată: `python scripts/genereaza_lista.py --toti`.
+Fișierul final, cu toți furnizorii: `python scripts/genereaza_lista.py --toti`.
+Denumirile trebuie să fie unice și între furnizori (scriptul se oprește altfel).
 
 ## În Google Sheets
 
@@ -109,7 +114,7 @@ de produse din ofertă și formulele rămân. Cursul din F3 se actualizează sin
 
 | câmp | ce conține |
 |---|---|
-| `furnizor` | numele din numele fișierului: `Lista de preturi - <furnizor>.xlsx` |
+| `furnizor` | numele foii din fișierul comun (ex. „Shaktiman”) |
 | `titlu` | rândul de sub „LISTA DE PREȚURI” |
 | `logo` | sigla din dreapta sus (opțional) |
 | `logouri_categorii` | opțional: sigla afișată pe rândul fiecărei categorii, pentru liste cu mai multe mărci |

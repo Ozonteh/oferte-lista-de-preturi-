@@ -19,7 +19,9 @@ toți furnizorii. Citește `README.md` pentru structură și comenzi.
      pune-o pe fundal alb (pozele PNG transparente devin altfel negre);
    - listă cu mai multe mărci: o categorie pe marcă („Tractoare LS”) și siglele în
      `logouri_categorii` din `furnizor.json`.
-4. `python scripts/genereaza_lista.py furnizori/<furnizor>`.
+4. `python scripts/genereaza_lista.py --toti`: **un singur fișier**,
+   `output/Lista de preturi Ozonteh.xlsx`, cu oferta, instrucțiunile și câte o foaie
+   pe furnizor. Furnizorul nou devine o foaie nouă acolo, nu un fișier separat.
 5. Verifică: recalculează o **copie** cu `recalc.py` din skill-ul xlsx (0 erori),
    randează în PDF cu LibreOffice și uită-te la pagini. Nu recalcula fișierul din
    `output/` direct: LibreOffice îl rescrie.
@@ -44,7 +46,10 @@ toți furnizorii. Citește `README.md` pentru structură și comenzi.
 
 ## Detalii de model de păstrat
 
+- Ordinea foilor: Ofertă comercială, Instrucțiuni, foile furnizorilor (numele din
+  `furnizor.json`), Catalog (ascunsă, toate produsele). Denumiri unice între furnizori.
 - Prețurile sunt în EUR, fără TVA. Lei = preț final (promo dacă există) × curs (F3).
+  Cursul live e pe prima foaie de furnizor (numele `Curs`); celelalte au `=Curs`.
 - F3 = `IFERROR(GOOGLEFINANCE("CURRENCY:EURMDL"), <curs_eur_mdl>)`: live în Google
   Sheets, curs de rezervă în Excel/LibreOffice (unde GOOGLEFINANCE dă #NAME?).
 - Foaia „Catalog” e ascunsă; oferta citește din ea prin INDEX/MATCH după denumire.

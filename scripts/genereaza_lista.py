@@ -1,16 +1,19 @@
-"""Generează lista de prețuri Ozonteh pentru un furnizor, în format Excel.
+"""Generează lista de prețuri Ozonteh în format Excel.
 
-Fișierul rezultat are trei foi:
-  - „Lista de prețuri”   produsele pe categorii: poză, denumire, preț EUR,
-                         preț promo, preț MDL, notă, link la site, link la ofertă;
-  - „Ofertă comercială”  ofertă pentru client, cu produsele alese din listă;
+Fișierul rezultat are foile:
+  - „Ofertă comercială”  pagina de start a ofertei, cu produsele alese din listă
+                         (din toate listele de prețuri din fișier);
+  - „Instrucțiuni”       cum se completează oferta și cum se scoate PDF-ul;
+  - câte o foaie pe furnizor („Shaktiman”, „Tractoare”, …): produsele pe categorii,
+                         cu poză, preț EUR, promo, MDL, notă, link la site și la ofertă;
   - „Catalog”            foaie ascunsă din care citește oferta (nu se editează).
 
 Utilizare:
-    python scripts/genereaza_lista.py furnizori/shaktiman
-    python scripts/genereaza_lista.py --toti        # toți furnizorii
+    python scripts/genereaza_lista.py --toti        # un singur fișier cu toți furnizorii
+    python scripts/genereaza_lista.py furnizori/shaktiman   # doar un furnizor
 
-Rezultat: output/Lista de preturi - <Furnizor>.xlsx
+Rezultat: output/Lista de preturi Ozonteh.xlsx (toți) sau
+          output/Lista de preturi - <Furnizor>.xlsx (unul)
 """
 
 import csv
@@ -39,7 +42,6 @@ COLOANE_CSV = [
     "categorie", "denumire", "link_produs", "pret_eur", "pret_promo_eur",
     "nota", "link_oferta", "imagine",
 ]
-FOAIE_LISTA = "Lista de prețuri"
 FOAIE_OFERTA = "Ofertă comercială"
 FOAIE_CATALOG = "Catalog"
 FOAIE_INSTRUCTIUNI = "Instrucțiuni"
@@ -245,9 +247,13 @@ def pe_categorii(produse):
 
 # ---------------------------------------------------------------- foaia 1
 
-def foaia_lista(wb, brand, config, produse, folder):
-    ws = wb.active
-    ws.title = FOAIE_LISTA
+def foaia_lista(wb, brand, config, produse, folder, titlu_foaie, curs_aici):
+    """Lista de prețuri a unui furnizor, pe foaia `titlu_foaie`.
+
+    Cursul live stă pe prima foaie de furnizor (`curs_aici`), cu numele „Curs”;
+    celelalte foi îl preiau, ca toate prețurile în lei să folosească același curs.
+    """
+    ws = wb.create_sheet(titlu_foaie)
     ws.sheet_view.showGridLines = False
     culoare = brand["culoare_principala"]
 
@@ -272,14 +278,17 @@ def foaia_lista(wb, brand, config, produse, folder):
           alignment=Alignment(horizontal="right", vertical="center"))
     # Curs live în Google Sheets; Excel nu are GOOGLEFINANCE (#NAME?), deci IFERROR
     # cade pe cursul de rezervă din brand/ozonteh.json.
-    scrie(ws, "F3", f'=IFERROR(GOOGLEFINANCE("CURRENCY:EURMDL"),{brand["curs_eur_mdl"]})',
+    formula_curs = (f'=IFERROR(GOOGLEFINANCE("CURRENCY:EURMDL"),{brand["curs_eur_mdl"]})'
+                    if curs_aici else "=Curs")
+    scrie(ws, "F3", formula_curs,
           font=font(bold=True, color=culoare),
           border=chenar_tot(), number_format="0.00",
           alignment=Alignment(horizontal="center", vertical="center"))
     actualizat = dt.date.fromisoformat(config["data_actualizare"]).strftime("%d.%m.%Y")
     scrie(ws, "G3", f"Actualizat: {actualizat}", font=font(color=GRI),
           alignment=Alignment(horizontal="right", vertical="center"))
-    wb.defined_names["Curs"] = DefinedName("Curs", attr_text=f"'{FOAIE_LISTA}'!$F$3")
+    if curs_aici:
+        wb.defined_names["Curs"] = DefinedName("Curs", attr_text=f"'{titlu_foaie}'!$F$3")
 
     # Cap de tabel
     cap = ["Nr.", "Foto", "Denumire produs", "Preț EUR\n(fără TVA)", "Preț promo\nEUR",
@@ -397,14 +406,19 @@ def url_poza(brand, folder, imagine):
     return brand["url_poze"].format(commit=commit, cale=cale)
 
 
-def foaia_catalog(wb, randuri_produse, brand, folder):
+def foaia_catalog(wb, surse, brand):
+    """Toate produsele din toate foile de furnizor, într-o singură listă pentru ofertă.
+
+    `surse`: (titlul foii, folderul furnizorului, [(rând, produs), …]) pentru fiecare furnizor.
+    """
     ws = wb.create_sheet(FOAIE_CATALOG)
     cap = ["Denumire", "Link produs", "Preț final EUR", "Preț listă EUR", "Preț promo EUR",
            "Link ofertă", "Categorie", "Poza (URL)"]
     for i, text in enumerate(cap, start=1):
         ws.cell(1, i, text).font = font(bold=True)
-    lista = f"'{FOAIE_LISTA}'!"
-    for i, (rand, p) in enumerate(randuri_produse, start=2):
+    randuri = [(f"'{titlu}'!", folder, rand, p)
+               for titlu, folder, randuri_produse in surse for rand, p in randuri_produse]
+    for i, (lista, folder, rand, p) in enumerate(randuri, start=2):
         ws.cell(i, 1, f"={lista}C{rand}")
         ws.cell(i, 2, p["link_produs"] or None)
         ws.cell(i, 3, f'=IF(ISNUMBER({lista}E{rand}),{lista}E{rand},'
@@ -417,7 +431,7 @@ def foaia_catalog(wb, randuri_produse, brand, folder):
     for litera, latime in zip("ABCDEFGH", (55, 60, 14, 14, 14, 60, 30, 60)):
         ws.column_dimensions[litera].width = latime
     ws.sheet_state = "hidden"
-    return len(randuri_produse) + 1
+    return len(randuri) + 1
 
 
 # ---------------------------------------------------------------- foaia 2
@@ -430,7 +444,7 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     meniul „Ozonteh” face PDF-ul complet. Câmpurile pe care le citește scriptul au
     nume (Oferta*), nu adrese fixe.
     """
-    ws = wb.create_sheet(FOAIE_OFERTA, 1)
+    ws = wb.create_sheet(FOAIE_OFERTA, 0)
     ws.sheet_view.showGridLines = False
     culoare = brand["culoare_principala"]
     titlu = brand["culoare_titlu"]
@@ -650,9 +664,10 @@ def citeste_reprezentant():
 
 # ---------------------------------------------------------------- foaia 4
 
-def foaia_instructiuni(wb, brand):
+def foaia_instructiuni(wb, brand, foi_furnizori):
     """Instrucțiunile stau pe foaia lor: Google Sheets tipărește tot ce e pe o foaie."""
-    ws = wb.create_sheet(FOAIE_INSTRUCTIUNI, 2)
+    ws = wb.create_sheet(FOAIE_INSTRUCTIUNI, 1)
+    prima = foi_furnizori[0]
     ws.sheet_view.showGridLines = False
     ws.column_dimensions["A"].width = 3
     ws.column_dimensions["B"].width = 110
@@ -661,10 +676,11 @@ def foaia_instructiuni(wb, brand):
             "1. Completați câmpurile galbene: clientul („Pentru:”), numărul ofertei; după completare "
             "devin albe, ca PDF-ul să iasă curat. Data e cea de azi; valabilitatea se alege din listă.",
             "2. În coloana „Produs” apăsați săgeata și alegeți produsul (până la "
-            f"{LINII_OFERTA} produse). Prețul (promo, dacă există) și linkul se completează singure "
-            "din „Lista de prețuri”.",
+            f"{LINII_OFERTA} produse); lista are produsele de pe toate foile de furnizor "
+            f"({', '.join(foi_furnizori)}). Poza, prețul (promo, dacă există) și linkul se "
+            "completează singure.",
             "3. Scrieți cantitatea și, dacă e cazul, reducerea (ex. 5%).",
-            "4. Totalul în lei folosește cursul din „Lista de prețuri” (F3).",
+            f"4. Totalul în lei folosește cursul din foaia „{prima}” (F3).",
             "5. Primul rând e un exemplu: înlocuiți-l sau ștergeți-l.",
             "6. Reprezentantul, poza și ștampila vin din brand/privat/ (le schimbă cine generează "
             "fișierul).",
@@ -688,11 +704,11 @@ def foaia_instructiuni(wb, brand):
             "Când se schimbă prețurile: Fișier → Import → Încărcare → fișierul .xlsx nou → "
             "„Înlocuiți foaia de calcul”. Meniul rămâne.",
         ]),
-        ("LISTA DE PREȚURI", [
+        ("LISTELE DE PREȚURI (câte o foaie pe furnizor)", [
             "Prețurile sunt în EUR, fără TVA. Prețul în lei = prețul final × cursul din F3.",
-            "Cursul din F3 se ia live din Google Finance (GOOGLEFINANCE, doar în Google Sheets). "
-            "În Excel apare cursul de rezervă din brand/ozonteh.json. Pentru un curs fix, "
-            "scrieți numărul direct în F3.",
+            f"Cursul se ia live din Google Finance (GOOGLEFINANCE, doar în Google Sheets) în F3 pe "
+            f"foaia „{prima}”; celelalte foi îl preiau de acolo. În Excel apare cursul de rezervă "
+            f"din brand/ozonteh.json. Pentru un curs fix, scrieți numărul în F3 pe foaia „{prima}”.",
         ]),
     ]
     rand = 2
@@ -716,29 +732,57 @@ def foaia_instructiuni(wb, brand):
 
 # ---------------------------------------------------------------- main
 
-def genereaza(folder):
-    folder = Path(folder)
+def titlu_foaie(nume):
+    """Numele foii în Excel: fără []:*?/\\ și cel mult 31 de caractere."""
+    return re.sub(r"[\[\]:*?/\\]", " ", nume).strip()[:31]
+
+
+def genereaza(foldere):
+    """Un fișier Excel cu oferta, instrucțiunile și câte o foaie pe furnizor."""
     brand = json.loads((RADACINA / "brand" / "ozonteh.json").read_text(encoding="utf-8"))
-    config, produse = citeste_furnizor(folder)
+    furnizori = []
+    for folder in map(Path, foldere):
+        config, produse = citeste_furnizor(folder)
+        furnizori.append((folder, config, produse))
+
+    titluri = [titlu_foaie(config["furnizor"]) for _, config, _ in furnizori]
+    rezervate = {FOAIE_OFERTA, FOAIE_INSTRUCTIUNI, FOAIE_CATALOG}
+    if len(set(titluri)) != len(titluri) or rezervate & set(titluri):
+        raise SystemExit(f"Nume de foi dublate sau rezervate: {titluri}")
+    vazute, dublate = set(), set()
+    for _, _, produse in furnizori:
+        for p in produse:
+            (dublate if p["denumire"] in vazute else vazute).add(p["denumire"])
+    if dublate:
+        raise SystemExit("Aceeași denumire la mai mulți furnizori (oferta n-ar ști ce preț să ia):\n  "
+                         + "\n  ".join(sorted(dublate)))
+
     wb = Workbook()
-    randuri_produse = foaia_lista(wb, brand, config, produse, folder)
-    ultim_rand_catalog = foaia_catalog(wb, randuri_produse, brand, folder)
-    foaia_oferta(wb, brand, produse, ultim_rand_catalog)
-    foaia_instructiuni(wb, brand)
+    wb.remove(wb.active)
+    surse = []
+    for i, ((folder, config, produse), titlu) in enumerate(zip(furnizori, titluri)):
+        randuri = foaia_lista(wb, brand, config, produse, folder, titlu, curs_aici=(i == 0))
+        surse.append((titlu, folder, randuri))
+    ultim_rand_catalog = foaia_catalog(wb, surse, brand)
+    foaia_oferta(wb, brand, furnizori[0][2], ultim_rand_catalog)
+    foaia_instructiuni(wb, brand, titluri)
     wb.active = 0
-    iesire = RADACINA / "output" / f"Lista de preturi - {config['furnizor']}.xlsx"
+
+    nume = (f"Lista de preturi - {furnizori[0][1]['furnizor']}.xlsx" if len(furnizori) == 1
+            else "Lista de preturi Ozonteh.xlsx")
+    iesire = RADACINA / "output" / nume
     iesire.parent.mkdir(exist_ok=True)
     wb.save(iesire)
-    print(f"{config['furnizor']}: {len(produse)} produse -> {iesire.relative_to(RADACINA)}")
+    detalii = ", ".join(f"{t}: {len(f[2])}" for t, f in zip(titluri, furnizori))
+    print(f"{detalii} produse -> {iesire.relative_to(RADACINA)}")
     return iesire
 
 
 if __name__ == "__main__":
     if sys.argv[1:] == ["--toti"]:
-        for f in sorted((RADACINA / "furnizori").iterdir()):
-            if f.is_dir() and not f.name.startswith("_"):
-                genereaza(f)
-    elif len(sys.argv) == 2:
-        genereaza(sys.argv[1])
+        genereaza([f for f in sorted((RADACINA / "furnizori").iterdir())
+                   if f.is_dir() and not f.name.startswith("_")])
+    elif len(sys.argv) >= 2:
+        genereaza(sys.argv[1:])
     else:
         raise SystemExit(__doc__)
