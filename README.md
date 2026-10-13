@@ -16,7 +16,24 @@ un folder cu datele lui, iar scriptul face din ele fișierul Excel final.
    EUR și MDL) se completează singure. Câmpurile galbene sunt de completat și
    devin albe după completare, ca PDF-ul pentru client să iasă curat.
 
-A treia foaie, **Catalog**, e ascunsă: din ea citește oferta. Nu se editează.
+3. **Instrucțiuni**: cum se completează oferta și cum se scoate PDF-ul.
+
+**Catalog** e ascunsă: din ea citește oferta. Nu se editează.
+
+## Oferta completă într-un PDF (Google Sheets)
+
+Meniul **Ozonteh → Descarcă oferta completă (PDF)** face un singur PDF: oferta
+comercială, apoi oferta (fișa tehnică) fiecărui produs ales, luată din linkul
+„Ofertă comercială” al produsului. PDF-ul se salvează și în Drive, în dosarul
+„Oferte Ozonteh (PDF)”. Codul e în `scripts/apps_script/oferta_completa.gs`.
+
+Instalare, o dată pe fiecare foaie de calcul:
+1. Fișier → Salvează ca Foi de calcul Google (dacă titlul are .XLSX).
+2. Extensii → Apps Script → lipiți tot `oferta_completa.gs` → Salvați.
+3. Reîncărcați foaia: apare meniul „Ozonteh”. La prima folosire Google cere permisiunea.
+
+Prețuri noi: Fișier → Import → fișierul .xlsx nou → „Înlocuiți foaia de calcul”.
+Meniul rămâne.
 
 ## Structura
 
@@ -35,6 +52,7 @@ output/                 fișierele Excel generate
 scripts/
   genereaza_lista.py    produse.csv -> Excel
   importa_lista_veche.py  lista veche din Google Sheets -> produse.csv + imagini
+  apps_script/oferta_completa.gs  meniul „Ozonteh” din Google Sheets
 ```
 
 ## `produse.csv`

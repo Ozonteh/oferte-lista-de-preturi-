@@ -48,3 +48,10 @@ toți furnizorii. Citește `README.md` pentru structură și comenzi.
 - Câmpurile de completat din ofertă sunt galbene doar cât sunt goale (formatare
   condițională), ca PDF-ul pentru client să iasă curat.
 - Font Arial, culoarea principală din `brand/ozonteh.json` (`00497E`, din siglă).
+- Google Sheets ignoră zona de tipar din Excel și tipărește tot ce e pe foaie:
+  pe foile care se tipăresc nu pune nimic în afara tabelului (instrucțiunile stau
+  pe foaia „Instrucțiuni”; datele ajutătoare în coloane ascunse).
+- `scripts/apps_script/oferta_completa.gs` citește produsele din B19:B28 și linkul
+  ofertei din coloana ascunsă I a foii „Ofertă comercială”. Dacă muți tabelul,
+  schimbă și constantele din script.
+- Google Sheets nu are indentare: textul de pe benzi primește spații în față.

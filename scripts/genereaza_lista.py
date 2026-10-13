@@ -39,7 +39,13 @@ COLOANE_CSV = [
 FOAIE_LISTA = "Lista de prețuri"
 FOAIE_OFERTA = "Ofertă comercială"
 FOAIE_CATALOG = "Catalog"
+FOAIE_INSTRUCTIUNI = "Instrucțiuni"
+# Pozițiile de mai jos le folosește și scripts/apps_script/oferta_completa.gs:
+# produsele în B19:B28, linkul la oferta fiecărui produs în coloana ascunsă I.
 LINII_OFERTA = 10
+PRIMA_LINIE_OFERTA = 19
+# Google Sheets nu are indentare: textul de pe benzi primește spații în față.
+SPATIU = "  "
 EMU_PE_PIXEL = 9525
 
 FONT = "Arial"
@@ -289,11 +295,11 @@ def foaia_lista(wb, brand, config, produse, folder):
     rand, nr, randuri_produse = 7, 0, []
     for categorie, lista in pe_categorii(produse).items():
         ws.merge_cells(start_row=rand, start_column=1, end_row=rand, end_column=9)
-        c = ws.cell(rand, 1, f"{categorie.upper()}  ·  {len(lista)} modele" if len(lista) > 1
-                    else categorie.upper())
+        c = ws.cell(rand, 1, SPATIU + (f"{categorie.upper()}  ·  {len(lista)} modele"
+                                       if len(lista) > 1 else categorie.upper()))
         c.font = font(size=11, bold=True, color=culoare)
         c.fill = umplere("E3EEF6")
-        c.alignment = Alignment(vertical="center", indent=1)
+        c.alignment = Alignment(vertical="center")
         logo_categorie = folder / config.get("logouri_categorii", {}).get(categorie, "-")
         ws.row_dimensions[rand].height = 30 if logo_categorie.is_file() else 24
         if logo_categorie.is_file():
@@ -391,13 +397,16 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     ws.sheet_view.showGridLines = False
     culoare = brand["culoare_principala"]
     for litera, latime in {"A": 5, "B": 44, "C": 14, "D": 8, "E": 14, "F": 11, "G": 15, "H": 16,
-                           "I": 3, "J": 60}.items():
+                           "I": 40}.items():
         ws.column_dimensions[litera].width = latime
+    # Coloana I e ascunsă (nu se tipărește): linkul la oferta fiecărui produs ales,
+    # din care meniul „Ozonteh” face PDF-ul complet.
+    ws.column_dimensions["I"].hidden = True
 
     def banda(rand, text):
         ws.merge_cells(f"A{rand}:H{rand}")
-        scrie(ws, f"A{rand}", text, font=font(size=11, bold=True, color="FFFFFF"),
-              fill=umplere(culoare), alignment=Alignment(vertical="center", indent=1))
+        scrie(ws, f"A{rand}", SPATIU + text, font=font(size=11, bold=True, color="FFFFFF"),
+              fill=umplere(culoare), alignment=Alignment(vertical="center"))
         ws.row_dimensions[rand].height = 22
 
     def eticheta(coord, text, dreapta=False):
@@ -462,7 +471,7 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     input_("C9:D9", "=Curs", "0.00", centru=True)
     eticheta("E9", "Cota TVA:", dreapta=True)
     input_("F9", brand["cota_tva"], "0%", centru=True)
-    eticheta("G9", "Valabilă până la:", dreapta=True)
+    eticheta("G9", "Expiră la:", dreapta=True)
     scrie(ws, "H9", '=IF(ISNUMBER(F8),F8+H8,"")', font=font(bold=True), number_format=FORMAT_DATA,
           alignment=Alignment(horizontal="center", vertical="center"))
     wb.defined_names["CotaTVA"] = DefinedName("CotaTVA", attr_text=f"'{FOAIE_OFERTA}'!$F$9")
@@ -494,10 +503,12 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
         c.border = chenar_tot()
         c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    prima, ultima = 19, 19 + LINII_OFERTA - 1
+    prima, ultima = PRIMA_LINIE_OFERTA, PRIMA_LINIE_OFERTA + LINII_OFERTA - 1
     nume = f"{FOAIE_CATALOG}!$A$2:$A${ultim_rand_catalog}"
     linkuri = f"{FOAIE_CATALOG}!$B$2:$B${ultim_rand_catalog}"
     preturi = f"{FOAIE_CATALOG}!$C$2:$C${ultim_rand_catalog}"
+    oferte_produse = f"{FOAIE_CATALOG}!$F$2:$F${ultim_rand_catalog}"
+    scrie(ws, "I18", "Link ofertă produs (pentru meniul Ozonteh)", font=font(size=9, color=GRI))
     dv = DataValidation(type="list", formula1=nume, allow_blank=True, showErrorMessage=True,
                         errorTitle="Produs necunoscut",
                         error="Alegeți produsul din listă (săgeata din dreapta celulei).")
@@ -525,6 +536,9 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
               font=font(bold=True), number_format=FORMAT_EUR, alignment=centru)
         scrie(ws, f"H{r}", f'=IF(ISNUMBER(G{r}),ROUND(G{r}*$C$9,0),"")',
               font=font(), number_format=FORMAT_MDL, alignment=centru)
+        scrie(ws, f"I{r}",
+              f'=IF(B{r}="","",IFERROR(INDEX({oferte_produse},MATCH(B{r},{nume},0))&"",""))',
+              font=font(size=9, color=GRI))
         for col in "ABCDEFGH":
             ws[f"{col}{r}"].border = chenar_tot()
 
@@ -587,20 +601,6 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     pune_imagine(ws, RADACINA / "brand" / "qr-ozonteh-net.png", 6, r - 2, 96, 96, dx=40, dy=0)
     ultim_rand = r + 3
 
-    # Instrucțiuni (în afara zonei de tipar)
-    instructiuni = [
-        "CUM SE FOLOSEȘTE (coloana aceasta nu se tipărește)",
-        "1. Completați câmpurile galbene; după completare devin albe.",
-        "2. În coloana „Produs” apăsați săgeata și alegeți produsul.",
-        "   Prețul și linkul la produs se completează singure din „Lista de prețuri”.",
-        "3. Scrieți cantitatea și, dacă e cazul, reducerea (ex. 5%).",
-        "4. Cursul vine din „Lista de prețuri” (F3); îl puteți schimba aici, doar pentru oferta aceasta.",
-        "5. Primul rând e un exemplu: înlocuiți-l sau ștergeți-l.",
-        "6. Pentru PDF: Fișier → Descărcare → PDF (o pagină, portret).",
-    ]
-    for i, text in enumerate(instructiuni):
-        scrie(ws, f"J{8 + i}", text, font=font(size=9, bold=(i == 0), color=GRI))
-
     ws.print_area = f"A1:H{ultim_rand}"
     ws.page_setup.orientation = "portrait"
     ws.page_setup.paperSize = ws.PAPERSIZE_A4
@@ -610,6 +610,66 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     ws.print_options.horizontalCentered = True
     ws.page_margins.left = ws.page_margins.right = 0.4
     ws.page_margins.top = ws.page_margins.bottom = 0.4
+
+
+# ---------------------------------------------------------------- foaia 4
+
+def foaia_instructiuni(wb, brand):
+    """Instrucțiunile stau pe foaia lor: Google Sheets tipărește tot ce e pe o foaie."""
+    ws = wb.create_sheet(FOAIE_INSTRUCTIUNI, 2)
+    ws.sheet_view.showGridLines = False
+    ws.column_dimensions["A"].width = 3
+    ws.column_dimensions["B"].width = 110
+    sectiuni = [
+        ("OFERTA COMERCIALĂ", [
+            "1. Completați câmpurile galbene; după completare devin albe, ca PDF-ul să iasă curat.",
+            "2. În coloana „Produs” apăsați săgeata și alegeți produsul. Prețul (promo, dacă există) "
+            "și linkul se completează singure din „Lista de prețuri”.",
+            "3. Scrieți cantitatea și, dacă e cazul, reducerea (ex. 5%).",
+            "4. Cursul vine din „Lista de prețuri” (F3); în ofertă îl puteți schimba doar pentru oferta aceasta.",
+            "5. Primul rând e un exemplu: înlocuiți-l sau ștergeți-l.",
+        ]),
+        ("PDF: DOAR OFERTA", [
+            "Pe foaia „Ofertă comercială”: Fișier → Descărcare → PDF → Foaia curentă, A4, portret, "
+            "„Potrivire la lățime”.",
+        ]),
+        ("PDF: OFERTA + FIȘELE PRODUSELOR ALESE (meniul Ozonteh, doar în Google Sheets)", [
+            "Meniul „Ozonteh → Descarcă oferta completă (PDF)” face un singur PDF: oferta comercială, "
+            "apoi oferta (fișa tehnică) fiecărui produs ales, în ordinea din tabel.",
+            "PDF-ul se salvează și în Google Drive, în dosarul „Oferte Ozonteh (PDF)”.",
+            "",
+            "Instalare, o singură dată pentru fiecare fișier:",
+            "  a. Fișier → Salvează ca Foi de calcul Google (dacă în titlu apare .XLSX).",
+            "  b. Extensii → Apps Script. Ștergeți tot ce e acolo și lipiți codul din fișierul "
+            "oferta_completa.gs. Salvați (Ctrl+S).",
+            "  c. Reîncărcați foaia de calcul. Apare meniul „Ozonteh”. La prima folosire Google cere "
+            "permisiunea: Continuați → contul Ozonteh → Permiteți.",
+            "",
+            "Când se schimbă prețurile: Fișier → Import → Încărcare → fișierul .xlsx nou → "
+            "„Înlocuiți foaia de calcul”. Meniul rămâne.",
+        ]),
+        ("LISTA DE PREȚURI", [
+            "Prețurile sunt în EUR, fără TVA. Prețul în lei = prețul final × cursul din F3.",
+            "În Google Sheets cursul se poate lega automat: în F3 scrieți =GOOGLEFINANCE(\"CURRENCY:EURMDL\").",
+        ]),
+    ]
+    rand = 2
+    scrie(ws, "B2", "CUM SE FOLOSEȘTE", font=font(size=16, bold=True, color=brand["culoare_principala"]))
+    rand = 4
+    for titlu, randuri in sectiuni:
+        scrie(ws, f"B{rand}", titlu, font=font(size=11, bold=True, color=brand["culoare_principala"]))
+        ws[f"B{rand}"].border = chenar_jos(brand["culoare_principala"])
+        rand += 1
+        for text in randuri:
+            scrie(ws, f"B{rand}", text or None, font=font(),
+                  alignment=Alignment(vertical="top", wrap_text=True))
+            rand += 1
+        rand += 1
+    ws.page_setup.orientation = "portrait"
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
 
 
 # ---------------------------------------------------------------- main
@@ -622,6 +682,7 @@ def genereaza(folder):
     randuri_produse = foaia_lista(wb, brand, config, produse, folder)
     ultim_rand_catalog = foaia_catalog(wb, randuri_produse)
     foaia_oferta(wb, brand, produse, ultim_rand_catalog)
+    foaia_instructiuni(wb, brand)
     wb.active = 0
     iesire = RADACINA / "output" / f"Lista de preturi - {config['furnizor']}.xlsx"
     iesire.parent.mkdir(exist_ok=True)
