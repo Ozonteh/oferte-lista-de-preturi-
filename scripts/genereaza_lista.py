@@ -248,19 +248,16 @@ def foaia_lista(wb, brand, config, produse, folder):
     for litera, latime in latimi.items():
         ws.column_dimensions[litera].width = latime
 
-    # Antet
-    ws.row_dimensions[1].height = 54
-    ws.row_dimensions[2].height = 20
-    ws.row_dimensions[3].height = 22
-    ws.row_dimensions[4].height = 16
-    ws.row_dimensions[5].height = 6
-    pune_imagine(ws, RADACINA / "brand" / "logo-ozonteh.png", 0, 0, 150, 52, dx=8, dy=10)
-    scrie(ws, "C1", "LISTA DE PREȚURI", font=font(size=20, bold=True, color=culoare),
-          alignment=Alignment(vertical="center"))
-    scrie(ws, "C2", config["titlu"], font=font(size=12, color=GRI),
+    # Antet compact: trei rânduri subțiri + capul de tabel, înghețate împreună.
+    for rand, inaltime in ((1, 28), (2, 16), (3, 20)):
+        ws.row_dimensions[rand].height = inaltime
+    pune_imagine(ws, RADACINA / "brand" / "logo-ozonteh.png", 0, 0, 140, 46, dx=8, dy=16)
+    scrie(ws, "C1", "LISTA DE PREȚURI", font=font(size=18, bold=True, color=culoare),
+          alignment=Alignment(vertical="bottom"))
+    scrie(ws, "C2", config["titlu"], font=font(size=11, color=GRI),
           alignment=Alignment(vertical="center"))
     if config.get("logo") and (folder / config["logo"]).exists():
-        pune_imagine(ws, folder / config["logo"], 7, 0, 210, 56, dx=12, dy=8, taie=True)
+        pune_imagine(ws, folder / config["logo"], 7, 0, 200, 46, dx=12, dy=14, taie=True)
 
     scrie(ws, "C3", "Prețuri în EUR, fără TVA", font=font(bold=True),
           alignment=Alignment(vertical="center"))
@@ -269,30 +266,27 @@ def foaia_lista(wb, brand, config, produse, folder):
     scrie(ws, "F3", brand["curs_eur_mdl"], font=font(bold=True, color="0000FF"),
           border=chenar_tot(), number_format="0.00",
           alignment=Alignment(horizontal="center", vertical="center"))
-    scrie(ws, "G3", "Actualizat:", font=font(bold=True),
+    actualizat = dt.date.fromisoformat(config["data_actualizare"]).strftime("%d.%m.%Y")
+    scrie(ws, "G3", f"Actualizat: {actualizat}", font=font(color=GRI),
           alignment=Alignment(horizontal="right", vertical="center"))
-    scrie(ws, "H3", dt.date.fromisoformat(config["data_actualizare"]), font=font(),
-          number_format=FORMAT_DATA, alignment=Alignment(horizontal="center", vertical="center"))
-    site = brand["site"].replace("https://", "").rstrip("/")
-    scrie(ws, "C4", f"{brand['firma']} · {brand['adresa']} · {brand['email']} · {site}",
-          font=font(size=9, color=GRI))
     wb.defined_names["Curs"] = DefinedName("Curs", attr_text=f"'{FOAIE_LISTA}'!$F$3")
 
     # Cap de tabel
     cap = ["Nr.", "Foto", "Denumire produs", "Preț EUR\n(fără TVA)", "Preț promo\nEUR",
            "Preț MDL*\n(fără TVA)", "Notă", "Pagina\nprodusului", "Ofertă\ncomercială"]
-    ws.row_dimensions[6].height = 32
+    RAND_CAP = 4
+    ws.row_dimensions[RAND_CAP].height = 28
     for i, text in enumerate(cap, start=1):
-        c = ws.cell(6, i, text)
+        c = ws.cell(RAND_CAP, i, text if i != 3 else SPATIU + text)
         c.font = font(bold=True, color="FFFFFF")
         c.fill = umplere(culoare)
         c.alignment = Alignment(horizontal="center" if i != 3 else "left",
-                                vertical="center", wrap_text=True, indent=0 if i != 3 else 1)
-    ws.freeze_panes = "A7"
-    ws.print_title_rows = "6:6"
+                                vertical="center", wrap_text=True)
+    ws.freeze_panes = f"A{RAND_CAP + 1}"
+    ws.print_title_rows = f"{RAND_CAP}:{RAND_CAP}"
 
     # Produse pe categorii
-    rand, nr, randuri_produse = 7, 0, []
+    rand, nr, randuri_produse = RAND_CAP + 1, 0, []
     for categorie, lista in pe_categorii(produse).items():
         ws.merge_cells(start_row=rand, start_column=1, end_row=rand, end_column=9)
         c = ws.cell(rand, 1, SPATIU + (f"{categorie.upper()}  ·  {len(lista)} modele"
@@ -348,6 +342,8 @@ def foaia_lista(wb, brand, config, produse, folder):
         "Cursul se poate schimba direct în F3. În Google Sheets se poate lega automat: "
         '=GOOGLEFINANCE("CURRENCY:EURMDL")',
         "Pentru o ofertă cu unul sau mai multe produse folosiți foaia „Ofertă comercială”.",
+        f"{brand['firma']} · {brand['adresa']} · {brand['email']} · "
+        f"{brand['site'].replace('https://', '').rstrip('/')}",
     ]
     for text in note:
         scrie(ws, f"C{rand}", text, font=font(size=9, italic=True, color=GRI))
