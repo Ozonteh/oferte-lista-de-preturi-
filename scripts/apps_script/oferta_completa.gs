@@ -105,9 +105,9 @@ function faPdf() {
     });
     SpreadsheetApp.flush();
 
-    // 3. Exportul PDF al foilor vizibile.
+    // 3. Exportul PDF al foilor vizibile; scale=4 = fiecare foaie pe o singură pagină A4.
     var parametri = [
-      'format=pdf', 'size=A4', 'portrait=true', 'fitw=true', 'gridlines=false',
+      'format=pdf', 'size=A4', 'portrait=true', 'scale=4', 'gridlines=false',
       'printtitle=false', 'sheetnames=false', 'pagenum=UNDEFINED', 'fzr=false',
       'horizontal_alignment=CENTER', 'top_margin=0.4', 'bottom_margin=0.4',
       'left_margin=0.4', 'right_margin=0.4'

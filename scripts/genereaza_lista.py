@@ -428,6 +428,11 @@ def foaia_catalog(wb, surse, brand):
         ws.cell(i, 6, p["link_oferta"] or None)
         ws.cell(i, 7, p["categorie"])
         ws.cell(i, 8, url_poza(brand, folder, p["imagine"]) or None)
+    # Variantele de valabilitate ca numere: o listă scrisă ("5,10,…") e text în Google
+    # Sheets, iar valoarea 60 (număr) ar apărea „invalidă” (triunghi roșu).
+    ws.cell(1, 10, "Valabilitate (zile)").font = font(bold=True)
+    for i, zile in enumerate(brand["valabilitate_variante"], start=2):
+        ws.cell(i, 10, zile)
     for litera, latime in zip("ABCDEFGH", (55, 60, 14, 14, 14, 60, 30, 60)):
         ws.column_dimensions[litera].width = latime
     ws.sheet_state = "hidden"
@@ -450,7 +455,7 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     titlu = brand["culoare_titlu"]
     rep = citeste_reprezentant()
     privat = RADACINA / "brand" / "privat"
-    latimi = {"A": 5, "B": 12, "C": 34, "D": 11, "E": 7, "F": 12, "G": 10, "H": 13, "I": 15,
+    latimi = {"A": 5, "B": 12, "C": 30, "D": 11, "E": 7, "F": 12, "G": 14, "H": 13, "I": 15,
               "J": 40}
     for litera, latime in latimi.items():
         ws.column_dimensions[litera].width = latime
@@ -475,10 +480,12 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
         ws.merge_cells(interval)
         return scrie(ws, interval.split(":")[0], valoare, **stil)
 
-    inaltimi = {1: 8, 2: 26, 3: 26, 4: 22, 5: 10, 6: 48, 7: 48, 8: 10, 9: 30, 10: 10, 11: 24,
-                12: 24, 13: 24, 14: 14, 15: 22, 16: 40, 24: 16, 29: 10, 33: 14, 34: 16}
+    # Înălțimi strânse: pagina încape pe un A4 și cu marginile implicite din Google Sheets.
+    inaltimi = {1: 8, 2: 22, 3: 22, 4: 18, 5: 8, 6: 42, 7: 42, 8: 8, 9: 28, 10: 8, 11: 24,
+                12: 24, 13: 24, 14: 12, 15: 22, 16: 30, 24: 14, 25: 15, 26: 15, 27: 15, 28: 15,
+                29: 10, 33: 12, 34: 14}
     for r in range(1, 40):
-        ws.row_dimensions[r].height = inaltimi.get(r, 20)
+        ws.row_dimensions[r].height = inaltimi.get(r, 18)
 
     # Antet: siglă, link + QR spre site, ilustrație
     pune_imagine(ws, RADACINA / "brand" / "logo-ozonteh.png", 0, 1, 230, 72, dx=4, dy=2)
@@ -532,7 +539,7 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
           number_format='"Valabilitate "0" Zile"',
           alignment=Alignment(horizontal="center", vertical="center"))
     dv_zile = DataValidation(type="list", allow_blank=True,
-                             formula1='"' + ",".join(str(z) for z in brand["valabilitate_variante"]) + '"')
+                             formula1=f"{FOAIE_CATALOG}!$J$2:$J${1 + len(brand['valabilitate_variante'])}")
     ws.add_data_validation(dv_zile)
     dv_zile.add("F11")
     separator = Side(style="medium", color="595959")
@@ -561,7 +568,7 @@ def foaia_oferta(wb, brand, produse, ultim_rand_catalog):
     ws.add_data_validation(dv)
     centru = Alignment(horizontal="center", vertical="center", wrap_text=True)
     for r in range(prima, ultima + 1):
-        ws.row_dimensions[r].height = 46
+        ws.row_dimensions[r].height = 36
         din_catalog = lambda col: f"INDEX({interval(col)},MATCH(C{r},{nume_cat},0))"
         scrie(ws, f"A{r}", f'=IF(C{r}="","",ROW()-{prima - 1})', font=font(color=GRI), alignment=centru)
         # Poza produsului ales: Google Sheets o încarcă de pe GitHub (Catalog, coloana H).
@@ -686,8 +693,8 @@ def foaia_instructiuni(wb, brand, foi_furnizori):
             "fișierul).",
         ]),
         ("PDF: DOAR OFERTA", [
-            "Pe foaia „Ofertă comercială”: Fișier → Descărcare → PDF → Foaia curentă, A4, portret, "
-            "„Potrivire la lățime”.",
+            "Pe foaia „Ofertă comercială”: Fișier → Tipărire (sau Descărcare → PDF) → Foaia curentă, "
+            "A4, portret, Scală: „Ajustare la pagină”. Așa pagina iese întotdeauna pe o singură foaie.",
         ]),
         ("PDF: OFERTA + FIȘELE PRODUSELOR ALESE (meniul Ozonteh, doar în Google Sheets)", [
             "Meniul „Ozonteh → Descarcă oferta completă (PDF)” face un singur PDF: oferta comercială, "
