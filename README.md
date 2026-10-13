@@ -24,7 +24,8 @@ A treia foaie, **Catalog**, e ascunsă: din ea citește oferta. Nu se editează.
 brand/                  sigla Ozonteh, QR-ul site-ului, datele firmei (ozonteh.json)
 furnizori/
   _sablon/              punct de pornire pentru un furnizor nou
-  shaktiman/
+  shaktiman/            un furnizor = un fișier Excel
+  tractoare/            listă cu mai multe mărci (LS, Farmtrac, Carraro, Solis)
     furnizor.json       nume, titlu, sigla, data actualizării
     produse.csv         lista de produse (sursa de adevăr)
     imagini/            pozele produselor
@@ -53,7 +54,9 @@ scripts/
 
 1. Copiați `furnizori/_sablon` în `furnizori/<nume-furnizor>` și completați `furnizor.json`.
 2. Dacă furnizorul are deja o listă în formatul vechi (Denumire / Poze / Link la sait /
-   Preț / Preț Promo / Oferta), descărcați-o ca .xlsx și importați-o:
+   Descriere / Preț sau Pret Vinzare / Preț Promo / Oferta), descărcați-o ca .xlsx și
+   importați-o. Merge și cu foi care au mai multe secțiuni (ex. câte una pe marcă).
+   Coloanele „Achiziție” și „SKU” se ignoră.
    ```
    python scripts/importa_lista_veche.py lista.xlsx furnizori/<nume-furnizor>
    ```
@@ -73,6 +76,16 @@ Pentru toți furnizorii odată: `python scripts/genereaza_lista.py --toti`.
 Fișier → Import → Încărcare → alegeți fișierul .xlsx. Pozele, linkurile, lista
 de produse din ofertă și formulele rămân. Cursul din F3 se poate lega automat
 la Google Finance cu `=GOOGLEFINANCE("CURRENCY:EURMDL")`.
+
+## `furnizor.json`
+
+| câmp | ce conține |
+|---|---|
+| `furnizor` | numele din numele fișierului: `Lista de preturi - <furnizor>.xlsx` |
+| `titlu` | rândul de sub „LISTA DE PREȚURI” |
+| `logo` | sigla din dreapta sus (opțional) |
+| `logouri_categorii` | opțional: sigla afișată pe rândul fiecărei categorii, pentru liste cu mai multe mărci |
+| `data_actualizare` | data din antet, `AAAA-LL-ZZ` |
 
 ## Setări comune
 

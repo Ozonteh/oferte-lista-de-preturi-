@@ -1,0 +1,13 @@
+{
+  "furnizor": "Tractoare",
+  "titlu": "Tractoare LS, Farmtrac, Antonio Carraro și Solis",
+  "site_producator": "",
+  "logo": "",
+  "logouri_categorii": {
+    "Tractoare LS": "logo-ls.png",
+    "Tractoare Farmtrac": "logo-farmtrac.png",
+    "Tractoare Antonio Carraro": "logo-antonio-carraro.png",
+    "Tractoare Solis": "logo-solis.png"
+  },
+  "data_actualizare": "2026-10-13"
+}

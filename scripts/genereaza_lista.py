@@ -108,16 +108,28 @@ def taie_margini_albe(im, prag=18, margine=0.04):
     return im.crop(cadru)
 
 
-def pune_imagine(ws, sursa, col, rand, max_l, max_h, dx=None, dy=None, taie=False):
+def alb_transparent(im, prag=235):
+    """Fundalul alb al unei sigle devine transparent, ca sigla să stea pe banda colorată."""
+    im = im.convert("RGBA")
+    alfa = im.convert("L").point(lambda p: 0 if p >= prag else 255)
+    im.putalpha(ImageChops.multiply(im.getchannel("A"), alfa))
+    return im
+
+
+def pune_imagine(ws, sursa, col, rand, max_l, max_h, dx=None, dy=None, taie=False,
+                 zona_dreapta=None, transparent=False):
     """Pune o imagine încadrată în max_l x max_h px, la celula (col, rand).
 
     `col` și `rand` încep de la 0. Fără `dx`, imaginea se centrează pe lățimea
-    coloanei. Imaginea se salvează la dublul dimensiunii, ca să fie clară.
+    coloanei; cu `zona_dreapta` (px) se aliniază la dreapta zonei. Imaginea se
+    salvează la dublul dimensiunii, ca să fie clară.
     """
     im = Image.open(sursa)
     im = im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") else "RGB")
     if taie and im.mode == "RGB":
         im = taie_margini_albe(im)
+    if transparent:
+        im = alb_transparent(im)
     raport = min(max_l / im.width, max_h / im.height)
     l, h = round(im.width * raport), round(im.height * raport)
     copie = im.copy()
@@ -129,6 +141,8 @@ def pune_imagine(ws, sursa, col, rand, max_l, max_h, dx=None, dy=None, taie=Fals
         copie.save(buf, format="JPEG", quality=88)
     buf.seek(0)
     img = XLImage(buf)
+    if zona_dreapta is not None:
+        dx = max(0, zona_dreapta - l - 24)
     if dx is None:
         litera = ws.cell(1, col + 1).column_letter
         dx = max(0, (latime_px(ws, litera) - l) // 2)
@@ -194,6 +208,12 @@ def citeste_furnizor(folder):
             r["imagine"] = ""
         produse.append(r)
 
+    categorii = {p["categorie"] for p in produse}
+    for categorie, logo in config.get("logouri_categorii", {}).items():
+        if categorie not in categorii:
+            avertismente.append(f"furnizor.json: sigla pentru categoria „{categorie}”, care nu există")
+        elif not (folder / logo).exists():
+            avertismente.append(f"furnizor.json: nu găsesc {logo}")
     for mesaj in avertismente:
         print("  atenție:", mesaj)
     if erori:
@@ -274,7 +294,11 @@ def foaia_lista(wb, brand, config, produse, folder):
         c.font = font(size=11, bold=True, color=culoare)
         c.fill = umplere("E3EEF6")
         c.alignment = Alignment(vertical="center", indent=1)
-        ws.row_dimensions[rand].height = 24
+        logo_categorie = folder / config.get("logouri_categorii", {}).get(categorie, "-")
+        ws.row_dimensions[rand].height = 30 if logo_categorie.is_file() else 24
+        if logo_categorie.is_file():
+            pune_imagine(ws, logo_categorie, 7, rand - 1, 130, 30, taie=True, transparent=True,
+                         zona_dreapta=latime_px(ws, "H") + latime_px(ws, "I"))
         rand += 1
         for p in lista:
             nr += 1

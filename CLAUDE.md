@@ -14,6 +14,11 @@ toți furnizorii. Citește `README.md` pentru structură și comenzi.
    - categorii scurte, la plural, aceleași ca la ceilalți furnizori acolo unde se
      potrivesc (ex. „Tocătoare de resturi vegetale”, „Freze de sol”, „Prese de balotat”);
    - pozele numite după serie (`bmf.jpg`, `srp.jpg`).
+   - foaie fără poze de produs: ia poza principală din oferta fiecărui produs
+     (Google Drive, export xlsx), verifică pe o planșă că modelul se potrivește și
+     pune-o pe fundal alb (pozele PNG transparente devin altfel negre);
+   - listă cu mai multe mărci: o categorie pe marcă („Tractoare LS”) și siglele în
+     `logouri_categorii` din `furnizor.json`.
 4. `python scripts/genereaza_lista.py furnizori/<furnizor>`.
 5. Verifică: recalculează o **copie** cu `recalc.py` din skill-ul xlsx (0 erori),
    randează în PDF cu LibreOffice și uită-te la pagini. Nu recalcula fișierul din
@@ -27,6 +32,9 @@ toți furnizorii. Citește `README.md` pentru structură și comenzi.
 - **Prețurile de achiziție, codurile de fabrică și datele de container nu intră
   niciodată în listă.** Listele vechi le au uneori mai jos în foaie; importul se
   oprește după 20 de rânduri goale tocmai ca să nu le prindă. Verifică.
+- Linkuri: când textul din celulă e o adresă diferită de hyperlink, importul ia
+  textul (hyperlinkul e adesea vechi sau o previzualizare de ciornă). Treci fiecare
+  diferență în `VERIFICARI.md`.
 - Nu „repara” în tăcere neconcordanțele dintre listă, oferte și site (model diferit,
   link la alt produs). Alege varianta susținută de cele mai multe surse, scrie-o în
   `furnizori/<furnizor>/VERIFICARI.md` și spune-i utilizatorului.
