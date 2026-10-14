@@ -57,6 +57,7 @@ brand/                  sigla Ozonteh, QR-ul site-ului, datele firmei (ozonteh.j
 furnizori/
   _sablon/              punct de pornire pentru un furnizor nou
   shaktiman/            un furnizor = un fișier Excel
+  mcms-warka/           cositori, platforme și utilaje de plantare MCMS Warka
   pluguri/              pluguri Namyslo, Aydin, Graecus (o categorie pe marcă)
   tractoare/            listă cu mai multe mărci (LS, Farmtrac, Carraro, Solis)
     furnizor.json       nume, titlu, sigla, data actualizării
