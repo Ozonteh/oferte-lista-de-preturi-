@@ -67,10 +67,8 @@ listă de prețuri: prețul vine din cele două oferte („Euro fără TVA”).
 - **Ofertele nu sunt publice**: sunt partajate doar cu 5 colegi Ozonteh. Pentru clienți,
   „Deschide oferta” cere acces. Setați în Drive „Oricine are linkul – Cititor” (ca la
   celelalte oferte) dacă lista se trimite clienților.
-- **Sigla Lansu lipsește** (nici ofertele, nici catalogul furnizorului nu o au).
-  Puneți-o ca `logo-lansu.png` și adăugați `"Tractoare Lansu": "logo-lansu.png"` în
-  `logouri_categorii`.
-- Pozele: poza principală din fiecare ofertă. LSB1004 e o fotografie (fundal de
-  hală), nu pe fundal alb.
+- Sigla Lansu (`logo-lansu.png`) e cea trimisă de marketing pe 14.10.2026, decupată.
+- Pozele: poza principală din fiecare ofertă. La LSB1004 poza din ofertă a fost
+  schimbată pe 14.10.2026 (acum pe fundal alb) și preluată din nou.
 - Cataloagele furnizorului (`LSB1004 Catalog.xlsx`, `LSM1004 CATALOG.xlsx`) nu au fost
   folosite pentru listă.
