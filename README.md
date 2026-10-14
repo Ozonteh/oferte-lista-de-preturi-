@@ -56,6 +56,7 @@ Meniul rămâne.
 brand/                  sigla Ozonteh, QR-ul site-ului, datele firmei (ozonteh.json)
 furnizori/
   _sablon/              punct de pornire pentru un furnizor nou
+  adrimak/              scarificatoare, grape cu discuri, distribuitoare Adrimak
   shaktiman/            un furnizor = un fișier Excel
   mcms-warka/           cositori, platforme și utilaje de plantare MCMS Warka
   pluguri/              pluguri Namyslo, Aydin, Graecus (o categorie pe marcă)
