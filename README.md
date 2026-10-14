@@ -57,6 +57,7 @@ brand/                  sigla Ozonteh, QR-ul site-ului, datele firmei (ozonteh.j
 furnizori/
   _sablon/              punct de pornire pentru un furnizor nou
   adrimak/              scarificatoare, grape cu discuri, distribuitoare Adrimak
+  agroremmasch/         grape cu discuri AGD și cultivatoare KSO Agroremmasch
   shaktiman/            un furnizor = un fișier Excel
   mcms-warka/           cositori, platforme și utilaje de plantare MCMS Warka
   pluguri/              pluguri Namyslo, Aydin, Graecus (o categorie pe marcă)
