@@ -18,7 +18,8 @@ clienților.
 | PIYANO 24 | 3 800 € | 3 400 € |
 | LTD-12 | 2 400 € | 2 200 € (în listă: „2200 doar modelul din stok”) |
 
-Am pus prețul din listă. Celelalte 15 oferte găsite au exact prețul din listă.
+**Decis (14.10.2026): rămâne prețul din listă.** De corectat prețul în cele 4 oferte.
+Celelalte 15 oferte găsite au exact prețul din listă.
 LTD-12: nota „Din stoc: 2 200 €; rolă opțională +600 €” (din listă: „OPTIONAL:
 Roller + 600 euro”).
 
