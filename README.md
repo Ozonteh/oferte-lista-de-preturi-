@@ -61,7 +61,7 @@ furnizori/
   shaktiman/            un furnizor = un fișier Excel
   mcms-warka/           cositori, platforme și utilaje de plantare MCMS Warka
   pluguri/              pluguri Namyslo, Aydin, Graecus (o categorie pe marcă)
-  tractoare/            listă cu mai multe mărci (LS, Farmtrac, Carraro, Solis)
+  tractoare/            listă cu mai multe mărci (LS, Farmtrac, Carraro, Solis, Lansu)
     furnizor.json       nume, titlu, sigla, data actualizării
     produse.csv         lista de produse (sursa de adevăr)
     imagini/            pozele produselor
